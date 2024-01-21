@@ -1,6 +1,7 @@
 #pragma once
 
 #include <image.cuh>
+#include <queue>
 
 class IDataContainer
 {
@@ -8,14 +9,14 @@ public:
     IDataContainer() = default;
     virtual ~IDataContainer() = default;
 
-    virtual SlicedImagePair<unsigned char, float>& getImages() = 0;
+    virtual SlicedImagePair<unsigned char, float>& GetImages() = 0;
 
 private:
-    void cutImagesIntoWindows() {};
-    void normalize() {};
+    // void cutImagesIntoWindows() {};
+    // void normalize() {};
 
-    bool _use_run_statistic;
-    int _batch_number;
+    bool use_run_statistic_;
+    int batch_number_;
 };
 
 class ImageContainer : IDataContainer
@@ -23,21 +24,21 @@ class ImageContainer : IDataContainer
 public:
     using ListOfFiles = std::queue<std::string>;
 
-    ImageContainer(ListOfFiles& file_names, PIVParameters& params);
+    ImageContainer(ListOfFiles& file_names, PIVParameters& parameters);
     ~ImageContainer() = default;
 
-    SlicedImagePair<unsigned char, float>& getImages();
+    SlicedImagePair<unsigned char, float>& GetImages() override;
 
-    bool isEmpty();
+    bool IsEmpty() const;
 
 private:
-    ImagePair<unsigned char> inputImages;
-    SlicedImagePair<unsigned char, float> outputImages;
+    ImagePair<unsigned char> input_images_;
+    SlicedImagePair<unsigned char, float> output_images_;
 
-    ListOfFiles& _file_names;
-    PIVParameters& _parameters;
+    ListOfFiles& file_names_;
+    PIVParameters& parameters_;
 
-    SharedPtrGPU<float> buffer_1, buffer_2;
+    SharedPtrGPU<float> buffer_1_, buffer_2_;
 };
 
 class VideoContainer : IDataContainer
@@ -46,5 +47,5 @@ public:
     VideoContainer(std::string file_name);
     ~VideoContainer();
 
-    SlicedImagePair<unsigned char, float>& getImages();
+    SlicedImagePair<unsigned char, float>& GetImages();
 };

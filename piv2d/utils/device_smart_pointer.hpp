@@ -1,80 +1,79 @@
 #pragma once
 
-#include <new>
 #include <string>
-#include <iostream>
+#include <stdexcept>
 
 template <typename T>
 class SharedPtrGPU
 {
 public:
-    SharedPtrGPU() : _owners(new unsigned long long(0)){};
+    SharedPtrGPU() :  raw_data_ptr_(nullptr), owners_(new unsigned long long(0)), size_(0) {};
 
-    SharedPtrGPU(size_t size_in_bytes) : _size(size_in_bytes), _owners(new unsigned long long(1))
+    SharedPtrGPU(const size_t size_in_bytes) :  owners_(new unsigned long long(1)), size_(size_in_bytes)
     {
-        auto status = cudaMalloc((void **)(&this->_raw_data_ptr), this->_size);
+        auto status = cudaMalloc(reinterpret_cast<void**>(&this->raw_data_ptr_), this->size_);
 
         if (status != cudaSuccess)
         {
-            throw std::runtime_error("Unable to allocate " + std::to_string(this->_size) + " on device");
+            throw std::runtime_error("Unable to allocate " + std::to_string(this->size_) + " on device");
         }
 
-        this->increment();
+        this->Increment();
     }
 
     SharedPtrGPU(SharedPtrGPU &another)
     {
         if (&another != this)
         {
-            this->_raw_data_ptr = another._raw_data_ptr;
-            this->_size = another._size;
-            this->_owners = another._owners;
+            this->raw_data_ptr_ = another.raw_data_ptr_;
+            this->size_ = another.size_;
+            this->owners_ = another.owners_;
 
-            this->increment();
+            this->Increment();
         }
     }
 
     SharedPtrGPU &operator=(const SharedPtrGPU &another)
     {
-        this->decrement();
+        this->Decrement();
 
-        this->_raw_data_ptr = another._raw_data_ptr;
-        this->_owners = another._owners;
-        this->_size = another._size;
+        this->raw_data_ptr_ = another.raw_data_ptr_;
+        this->owners_ = another.owners_;
+        this->size_ = another.size_;
 
-        this->increment();
+        this->Increment();
 
         return *this;
     }
 
     ~SharedPtrGPU()
     {
-        this->decrement();
+        this->Decrement();
     }
 
     inline T *get() const
     {
-        return this->_raw_data_ptr;
+        return this->raw_data_ptr_;
     }
 
     T *operator->() const
     {
-        return this->_raw_data_ptr;
+        return this->raw_data_ptr_;
     }
 
     T &operator*() const
     {
-        return this->_raw_data_ptr;
+        return this->raw_data_ptr_;
     }
 
     inline unsigned long long size() const
     {
-        return this->_size;
+        return this->size_;
     }
 
-    SharedPtrGPU &copyDataToHost(void *destination)
+    SharedPtrGPU &CopyDataToHost(void *destination)
     {
-        auto status = cudaMemcpy(destination, this->_raw_data_ptr, this->size(), cudaMemcpyDeviceToHost);
+        auto status = cudaMemcpy(destination, this->raw_data_ptr_, this->size(), cudaMemcpyDeviceToHost);
 
         if (status != cudaSuccess)
         {
@@ -84,14 +83,14 @@ public:
         return *this;
     }
 
-    SharedPtrGPU &uploadHostData(void *source, size_t size_in_bytes)
+    SharedPtrGPU &UploadHostData(const void *source, size_t size_in_bytes)
     {
-        if (size_in_bytes > this->_size)
+        if (size_in_bytes > this->size_)
         {
             throw std::runtime_error("Size of the host data must be less or equal to size of the allocated memory on device");
         }
 
-        auto status = cudaMemcpy(this->_raw_data_ptr, source, size_in_bytes, cudaMemcpyHostToDevice);
+        auto status = cudaMemcpy(this->raw_data_ptr_, source, size_in_bytes, cudaMemcpyHostToDevice);
 
         if (status != cudaSuccess)
         {
@@ -102,25 +101,25 @@ public:
     }
 
 private:
-    T *_raw_data_ptr;
-    unsigned long long *_owners;
-    unsigned long long _size;
+    T *raw_data_ptr_;
+    unsigned long long *owners_;
+    unsigned long long size_;
 
-    void decrement()
+    void Decrement()
     {
-        (*this->_owners)--;
+        --(*this->owners_);
 
-        if ((*_owners) == 0)
+        if ((*owners_) == 0)
         {
-            cudaFree(this->_raw_data_ptr);
-            delete this->_owners;
+            cudaFree(this->raw_data_ptr_);
+            delete this->owners_;
             delete this;
         }
     }
 
-    void increment()
+    void Increment()
     {
-        (*this->_owners)++;
+        ++(*this->owners_);
     }
 };
 

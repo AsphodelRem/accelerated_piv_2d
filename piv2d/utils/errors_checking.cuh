@@ -1,3 +1,5 @@
+#pragma once
+
 #define CUDA_CHECK_ERROR(func)                                 \
     do                                                         \
     {                                                          \

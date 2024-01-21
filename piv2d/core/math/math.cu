@@ -1,42 +1,45 @@
 #include <math/math.cuh>
 
-MultiArgMaxSearch::MultiArgMaxSearch(PIVParameters &params)
+constexpr unsigned int kBlockSize = 32;
+constexpr float epsilon = 1e-8;
+
+MultiArgMaxSearch::MultiArgMaxSearch(PIVParameters &parameters)
 {
-  this->_number_of_windows = params.image_params.getNumberOfWindows();
+  this->number_of_windows_ = parameters.image_parameters.GetNumberOfWindows();
   size_t size_of_temp_buffer = 0;
 
-  this->_offsets = std::make_shared<int[]>(this->_number_of_windows + 1);
-  this->result = make_shared_gpu<cub::KeyValuePair<int, float>>(this->_number_of_windows);
+  this->offsets_ = std::make_shared<int[]>(this->number_of_windows_ + 1);
+  this->result = make_shared_gpu<cub::KeyValuePair<int, float>>(this->number_of_windows_);
 
   float *dummy_pointer = NULL;
-  auto status = cub::DeviceSegmentedReduce::ArgMax(
+  CUDA_CHECK_ERROR(cub::DeviceSegmentedReduce::ArgMax(
       NULL, size_of_temp_buffer, dummy_pointer, this->result.get(),
-      this->_number_of_windows, this->_offsets.get(), this->_offsets.get() + 1);
+      this->number_of_windows_, this->offsets_.get(), this->offsets_.get() + 1));
 
-  this->_buffer = make_shared_gpu<char>(size_of_temp_buffer);
+  this->buffer_ = make_shared_gpu<char>(size_of_temp_buffer);
 
-  for (int i = 0; i < this->_number_of_windows + 1; i++)
+  for (int i = 0; i < this->number_of_windows_ + 1; i++)
   {
-    this->_offsets[i] = params.image_params.window_size * params.image_params.window_size * i;
+    this->offsets_[i] = parameters.image_parameters.window_size * parameters.image_parameters.window_size * i;
   }
 
-  this->_dOffsets =
-      make_shared_gpu<int>(this->_number_of_windows + 1)
-          .uploadHostData(this->_offsets.get(),
-                          (this->_number_of_windows + 1) * sizeof(int));
+  this->dev_cub_offsets_ =
+      make_shared_gpu<int>(this->number_of_windows_ + 1)
+          .UploadHostData(this->offsets_.get(),
+                          (this->number_of_windows_ + 1) * sizeof(int));
 }
 
-void MultiArgMaxSearch::getMaxForAllWindows(SharedPtrGPU<float> &input)
+void MultiArgMaxSearch::GetMaxForAllWindows(SharedPtrGPU<float> &input)
 {
-  size_t size = this->_buffer.size();
-  auto status = cub::DeviceSegmentedReduce::ArgMax(
-      this->_buffer.get(), size, input.get(), this->result.get(),
-      this->_number_of_windows, this->_dOffsets.get(),
-      this->_dOffsets.get() + 1);
+  size_t size = this->buffer_.size();
+  CUDA_CHECK_ERROR(cub::DeviceSegmentedReduce::ArgMax(
+      this->buffer_.get(), size, input.get(), this->result.get(),
+      this->number_of_windows_, this->dev_cub_offsets_.get(),
+      this->dev_cub_offsets_.get() + 1));
 }
 
-__global__ void conjugated_kernel(cuComplex *complexData, unsigned int height,
-                                  unsigned int width)
+__global__
+void Conjugate_kernel(cuComplex *spectrum, unsigned int height, unsigned int width)
 {
   unsigned int x = threadIdx.x + blockIdx.x * blockDim.x;
   unsigned int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -44,20 +47,20 @@ __global__ void conjugated_kernel(cuComplex *complexData, unsigned int height,
   if (x < width && y < height)
   {
     unsigned int idx = y * width + x;
-    complexData[idx].y = -(complexData[idx].y);
+    spectrum[idx].y = -spectrum[idx].y;
   }
 }
 
-void conjugate(cuComplex *complexData, unsigned int height,
-               unsigned int width)
+void Conjugate(cuComplex *spectrum, unsigned int height, unsigned int width)
 {
-  dim3 threadsPerBlock = {32, 32};
-  dim3 gridSize = {(width + 31) / 32, (height + 31) / 32};
+  dim3 threads_per_block = {32, 32};
+  dim3 grid_size = {(width + 31) / 32, (height + 31) / 32};
 
-  conjugated_kernel<<<gridSize, threadsPerBlock>>>(complexData, height, width);
+  Conjugate_kernel<<<grid_size, threads_per_block>>>(spectrum, height, width);
 }
 
-__global__ void multiplicate_kernel(cuComplex *a, cuComplex *b,
+__global__
+void Multiplicate_kernel(cuComplex *a, cuComplex *b,
                                     unsigned int height, unsigned int width)
 {
   unsigned int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -70,112 +73,133 @@ __global__ void multiplicate_kernel(cuComplex *a, cuComplex *b,
   }
 }
 
-__global__ void fftShift2D_kernel(float *data, float *dst, unsigned int width,
-                                  unsigned int height)
+__global__
+void SpectrumShift2D_kernel(float *spectrum,
+                            float *shifted_spectrum,
+                            unsigned int width,
+                            unsigned int height)
 {
   unsigned int x = threadIdx.x + blockIdx.x * blockDim.x;
   unsigned int y = threadIdx.y + blockIdx.y * blockDim.y;
   unsigned int window = blockIdx.z;
 
-  unsigned int windowOffset = window * width * height;
+  unsigned int window_offset = window * width * height;
 
   if (x < width && y < height)
   {
     unsigned int x1 = (x + (width / 2)) % width;
     unsigned int y1 = (y + (height / 2)) % height;
 
-    dst[windowOffset + y1 * width + x1] = data[windowOffset + y * width + x];
-    dst[windowOffset + y * width + x] = data[windowOffset + y1 * width + x1];
+    shifted_spectrum[window_offset + y1 * width + x1] = spectrum[window_offset + y * width + x];
+    shifted_spectrum[window_offset + y * width + x] = spectrum[window_offset + y1 * width + x1];
   }
 }
 
-void multiplicate(cuComplex *a, cuComplex *b, unsigned int height,
-                  unsigned int width)
+void ElementwiseMultiplication(cuComplex *a,
+                              cuComplex *b,
+                              unsigned int height,
+                              unsigned int width)
 {
-  dim3 threadsPerBlock = {32, 32};
-  dim3 gridSize = {(width + 31) / 32, (height + 31) / 32};
+  dim3 threads_per_block = {32, 32};
+  dim3 grid_size = {(width + 31) / 32, (height + 31) / 32};
 
-  multiplicate_kernel<<<gridSize, threadsPerBlock>>>(a, b, height, width);
+  Multiplicate_kernel<<<grid_size, threads_per_block>>>(a, b, height, width);
 }
 
-void fftShift(float *data, float *dst, unsigned int width, unsigned int height,
-              unsigned int numberOfSegments)
+void ShiftSpectrum(float *spectrum,
+                  float *shifted_spectrum,
+                  unsigned int width,
+                  unsigned int height,
+                  unsigned int number_of_windows)
 {
-  dim3 threadsPerBlock(16, 16);
-  dim3 numBlocks(width / 16, height / 16, numberOfSegments);
+  dim3 threads_per_block(16, 16);
+  dim3 num_blocks(width / 16, height / 16, number_of_windows);
 
-  fftShift2D_kernel<<<numBlocks, threadsPerBlock>>>(data, dst, width, height);
+  SpectrumShift2D_kernel<<<num_blocks, threads_per_block>>>(spectrum, shifted_spectrum, width, height);
 }
 
-void ForwardFFTHandler::computeForwardFFT(SharedPtrGPU<float> &image, bool to_conjugate)
+void ForwardFFTHandler::ComputeForwardFFT(SharedPtrGPU<float> &image, bool to_conjugate)
 {
-  auto status = cufftExecR2C(this->cufftHandler, image.get(), this->result.get());
+  cufftExecR2C(this->cufft_handler_, image.get(), this->result.get());
 
   if (to_conjugate)
   {
-    conjugate(this->result.get(), this->parameters_.image_params.height,
-              this->parameters_.image_params.width);
+    Conjugate(this->result.get(), this->parameters_.image_parameters.height,
+              this->parameters_.image_parameters.width);
   }
 }
 
 ForwardFFTHandler &
 ForwardFFTHandler::operator*=(const ForwardFFTHandler &other)
 {
-  auto window_size = this->parameters_.image_params.window_size;
+  auto window_size = this->parameters_.image_parameters.window_size;
+  auto image_height = this->parameters_.image_parameters.height;
+  auto image_width = this->parameters_.image_parameters.width;
 
-  auto spectrum_height = this->parameters_.image_params.height -
-                         (this->parameters_.image_params.height % this->parameters_.image_params.window_size);
+  auto spectrum_height = image_height - (image_height % window_size);
+  auto spectrum_width = (image_width - (image_width % window_size)) / window_size * (window_size / 2 + 1);
 
-  auto spectrum_width = 279;
-
-  multiplicate(this->result.get(), other.result.get(),
-               spectrum_height,
-               spectrum_width);
+  ElementwiseMultiplication(this->result.get(), other.result.get(), spectrum_height, spectrum_width);
 
   return *this;
 }
 
-void BackwardFFTHandler::computeBackwardFFT(SharedPtrGPU<cuComplex> &image)
+void BackwardFFTHandler::ComputeBackwardFFT(SharedPtrGPU<cuComplex> &image)
 {
-  auto status = cufftExecC2R(this->cufftHandler, image.get(), this->buffer.get());
+  cufftExecC2R(this->cufft_handler_, image.get(), this->buffer_.get());
 
-  fftShift(this->buffer.get(), this->result.get(),
-           this->parameters_.image_params.window_size,
-           this->parameters_.image_params.window_size,
-           this->parameters_.image_params.getNumberOfWindows());
+  ShiftSpectrum(this->buffer_.get(), this->result.get(),
+           this->parameters_.image_parameters.window_size,
+           this->parameters_.image_parameters.window_size,
+           this->parameters_.image_parameters.GetNumberOfWindows());
 }
 
-constexpr unsigned int kBlockSize = 32;
-constexpr float epsilon = 1e-8;
-
-__device__ void devGaussInterpolation(Point2D<float> *outputInterpolatedValues, unsigned int currentWindow, unsigned int XIndex, unsigned int YIndex,
-                                      float center, float up, float down, float left, float right)
+__device__
+void DevGaussInterpolation(Point2D<float> *output_interpolated_values,
+                                      unsigned int current_window_index,
+                                      unsigned int x,
+                                      unsigned int y,
+                                      float center,
+                                      float up,
+                                      float down,
+                                      float left,
+                                      float right)
 {
-  float deltaY = (log(left + epsilon) - log(right + epsilon)) /
+  float delta_y = (log(left + epsilon) - log(right + epsilon)) /
                  (2 * log(left + epsilon) - 4 * log(center + epsilon) + 2 * log(right + epsilon));
 
-  float deltaX = (log(down + epsilon) - log(up + epsilon)) /
+  float delta_x = (log(down + epsilon) - log(up + epsilon)) /
                  (2 * log(down + epsilon) - 4 * log(center + epsilon) + 2 * log(up + epsilon));
 
-  outputInterpolatedValues[currentWindow].x = (static_cast<float>(XIndex) + deltaX);
-  outputInterpolatedValues[currentWindow].y = (static_cast<float>(YIndex) + deltaY);
+  output_interpolated_values[current_window_index].x = (static_cast<float>(x) + delta_x);
+  output_interpolated_values[current_window_index].y = (static_cast<float>(y) + delta_y);
 }
 
-__device__ void devParabolicInterpolation(Point2D<float> *outputInterpolatedValues, unsigned int currentWindow, unsigned int XIndex, unsigned int YIndex,
-                                          float center, float up, float down, float left, float right)
+__device__
+void DevParabolicInterpolation(Point2D<float> *output_interpolated_values,
+                                          unsigned int current_window_index,
+                                          unsigned int x,
+                                          unsigned int y,
+                                          float center,
+                                          float up,
+                                          float down,
+                                          float left,
+                                          float right)
 {
-  float deltaY = (left - right) / (2 * left - 4 * center + 2 * right);
-  float deltaX = (down - up) / (2 * down - 4 * center + 2 * up);
+  float delta_y = (left - right) / (2 * left - 4 * center + 2 * right);
+  float delta_x = (down - up) / (2 * down - 4 * center + 2 * up);
 
-  outputInterpolatedValues[currentWindow].x = static_cast<float>(XIndex) + deltaX;
-  outputInterpolatedValues[currentWindow].y = static_cast<float>(YIndex) + deltaY;
+  output_interpolated_values[current_window_index].x = static_cast<float>(x) + delta_x;
+  output_interpolated_values[current_window_index].y = static_cast<float>(y) + delta_y;
 }
 
-__global__ void subpixelInterpolation_kernel(const float *correlationFunction,
-                                             cub::KeyValuePair<int, float> *maximumValues,
-                                             Point2D<float> *outputInterpolatedValues,
-                                             unsigned length, unsigned int segmentSize,
-                                             int subpixelInterpolationType)
+__global__
+void SubpixelInterpolation_kernel(const float *correlation_function,
+                                             cub::KeyValuePair<int, float> *maximum_values,
+                                             Point2D<float> *output_interpolated_values,
+                                             unsigned length,
+                                             unsigned int window_size,
+                                             int subpixel_interpolation_type)
 {
   float center = 1.0, up = 1.0, down = 1.0, left = 1.0, right = 1.0;
 
@@ -184,77 +208,78 @@ __global__ void subpixelInterpolation_kernel(const float *correlationFunction,
   if (window >= length)
     return;
 
-  unsigned int currentXIdx = maximumValues[window].key % segmentSize,
-               currentYIdx = maximumValues[window].key / segmentSize;
+  unsigned int current_x_idx = maximum_values[window].key % window_size,
+               current_y_idx = maximum_values[window].key / window_size;
 
   // Check border
   if (
-      (currentYIdx <= 0) ||
-      (currentXIdx <= 0) ||
-      (currentYIdx >= (segmentSize - 1) ||
-       (currentXIdx >= (segmentSize - 1))))
+      (current_y_idx <= 0) ||
+      (current_x_idx <= 0) ||
+      (current_y_idx >= (window_size - 1) ||
+      (current_x_idx >= (window_size - 1)))
+      )
   {
-    outputInterpolatedValues[window].x = static_cast<float>(currentXIdx);
-    outputInterpolatedValues[window].y = static_cast<float>(currentYIdx);
+    output_interpolated_values[window].x = static_cast<float>(current_x_idx);
+    output_interpolated_values[window].y = static_cast<float>(current_y_idx);
 
     return;
   }
 
-  center = correlationFunction[segmentSize * segmentSize * window + (currentYIdx * segmentSize + currentXIdx)],
+  center = correlation_function[window_size * window_size * window + (current_y_idx * window_size + current_x_idx)],
 
-  up = correlationFunction[segmentSize * segmentSize * window +
-                           ((currentYIdx + 1) * segmentSize + currentXIdx)],
+  up = correlation_function[window_size * window_size * window +
+                           ((current_y_idx + 1) * window_size + current_x_idx)],
 
-  down = correlationFunction[segmentSize * segmentSize * window +
-                             ((currentYIdx - 1) * segmentSize + currentXIdx)];
+  down = correlation_function[window_size * window_size * window +
+                             ((current_y_idx - 1) * window_size + current_x_idx)];
 
-  right = correlationFunction[segmentSize * segmentSize * window +
-                              (currentYIdx * segmentSize + (currentXIdx + 1))],
+  right = correlation_function[window_size * window_size * window +
+                              (current_y_idx * window_size + (current_x_idx + 1))],
 
-  left = correlationFunction[segmentSize * segmentSize * window +
-                             (currentYIdx * segmentSize + (currentXIdx - 1))];
+  left = correlation_function[window_size * window_size * window +
+                             (current_y_idx * window_size + (current_x_idx - 1))];
 
   // Avoiding negative values when gaussian is used
   if ((up <= 0 || left <= 0 || down <= 0 || right <= 0 || center <= 0) &&
-      subpixelInterpolationType == InterpolationType::kGaussian)
+      subpixel_interpolation_type == InterpolationType::kGaussian)
   {
-    subpixelInterpolationType = InterpolationType::kParabolic;
+    subpixel_interpolation_type = InterpolationType::kParabolic;
   }
 
-  switch (subpixelInterpolationType)
+  switch (subpixel_interpolation_type)
   {
   case InterpolationType::kGaussian:
-    devGaussInterpolation(outputInterpolatedValues, window, currentXIdx, currentYIdx,
+    DevGaussInterpolation(output_interpolated_values, window, current_x_idx, current_y_idx,
                           center, up, down, left, right);
     break;
 
   case InterpolationType::kParabolic:
-    devParabolicInterpolation(outputInterpolatedValues, window, currentXIdx, currentYIdx,
+    DevParabolicInterpolation(output_interpolated_values, window, current_x_idx, current_y_idx,
                               center, up, down, left, right);
     break;
 
   default:
-    outputInterpolatedValues[window].x = static_cast<float>(currentXIdx);
-    outputInterpolatedValues[window].y = static_cast<float>(currentYIdx);
+    output_interpolated_values[window].x = static_cast<float>(current_x_idx);
+    output_interpolated_values[window].y = static_cast<float>(current_y_idx);
     break;
   }
 }
 
 Interpolation::Interpolation(PIVParameters &parameters) : parameters_(parameters)
 {
-  this->result = make_shared_gpu<Point2D<float>>(parameters.image_params.getNumberOfWindows());
+  this->result = make_shared_gpu<Point2D<float>>(parameters.image_parameters.GetNumberOfWindows());
 }
 
-void Interpolation::interpolate(SharedPtrGPU<float> &correlationFunction,
+void Interpolation::Interpolate(SharedPtrGPU<float> &correlation_function,
                                 SharedPtrGPU<cub::KeyValuePair<int, float>> &input)
 {
-  auto length = parameters_.image_params.getNumberOfWindows();
-  auto window_size = parameters_.image_params.window_size;
+  auto length = parameters_.image_parameters.GetNumberOfWindows();
+  auto window_size = parameters_.image_parameters.window_size;
 
-  dim3 gridSize = {(length + kBlockSize - 1) / kBlockSize};
-  dim3 threadsPerBlock = {kBlockSize};
+  dim3 grid_size = {(length + kBlockSize - 1) / kBlockSize};
+  dim3 threads_per_block = {kBlockSize};
 
-  subpixelInterpolation_kernel<<<gridSize, threadsPerBlock>>>(correlationFunction.get(), input.get(),
+  SubpixelInterpolation_kernel<<<grid_size, threads_per_block>>>(correlation_function.get(), input.get(),
                                                               this->result.get(),
-                                                              length, window_size, parameters_.interpolation_params.interpolationType);
+                                                              length, window_size, parameters_.interpolation_parameters.interpolation_type);
 }

@@ -1,39 +1,39 @@
 #include "image_container.cuh"
 #include "parameters.cuh"
 
-ImageContainer::ImageContainer(ListOfFiles &file_names, PIVParameters &params) : _file_names(file_names), _parameters(params)
+ImageContainer::ImageContainer(ListOfFiles &file_names, PIVParameters &parameters) : file_names_(file_names), parameters_(parameters)
 {
     if (file_names.size() == 0 || file_names.size() % 2 != 0)
     {
         throw std::runtime_error("No files");
     }
 
-    auto file_1 = this->_file_names.front();
-    auto file_2 = this->_file_names.front();
+    const std::string file_1_name = this->file_names_.front();
+    const std::string file_2_name = this->file_names_.front();
 
-    this->inputImages = ImagePair<unsigned char>(file_1, file_2);
-    this->outputImages = SlicedImagePair<unsigned char, float>(this->inputImages, params);
+    this->input_images_ = ImagePair<unsigned char>(file_1_name, file_2_name);
+    this->output_images_ = SlicedImagePair<unsigned char, float>(this->input_images_, parameters);
 }
 
-bool ImageContainer::isEmpty()
+bool ImageContainer::IsEmpty() const
 {
-    return this->_file_names.empty();
+    return this->file_names_.empty();
 }
 
 // template <typename T, typename T2>
-SlicedImagePair<unsigned char, float> &ImageContainer::getImages()
+SlicedImagePair<unsigned char, float> &ImageContainer::GetImages()
 {
-    if (!this->isEmpty())
+    if (!this->IsEmpty())
     {
-        auto file_1 = this->_file_names.front();
-        this->_file_names.pop();
+        const std::string file_1_name =  this->file_names_.front();
+        this->file_names_.pop();
 
-        auto file_2 = this->_file_names.front();
-        this->_file_names.pop();
+        const std::string file_2_name =  this->file_names_.front();
+        this->file_names_.pop();
 
-        this->inputImages.uploadNewImages(file_1, file_2);
-        this->outputImages.uploadNewImages(this->inputImages);
+        this->input_images_.UploadNewImages(file_1_name, file_2_name);
+        this->output_images_.UploadNewImages(this->input_images_);
     }
 
-    return this->outputImages;
+    return this->output_images_;
 }

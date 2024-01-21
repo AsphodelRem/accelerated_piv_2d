@@ -10,6 +10,7 @@
 
 #include <parameters.cuh>
 #include <device_smart_pointer.hpp>
+#include <errors_checking.cuh>
 
 template <typename T>
 struct Point2D
@@ -17,34 +18,30 @@ struct Point2D
     T x, y;
 };
 
-template <typename T>
-struct MovementDescription
-{
-    int centerX, centerY;
-    T u, v;
-    T correlation;
-};
-
-void conjugate(cuComplex *complexData, unsigned int height, unsigned int width);
-
-void fftShift(float *data, float *dst, unsigned int width, unsigned int height, unsigned int numberOfSegments);
+// template <typename T>
+// struct MovementDescription
+// {
+//     int centerX, centerY;
+//     T u, v;
+//     T correlation;
+// };
 
 class MultiArgMaxSearch
 {
 public:
-    MultiArgMaxSearch(PIVParameters &params);
+    MultiArgMaxSearch(PIVParameters &parameters);
     ~MultiArgMaxSearch() = default;
 
-    void getMaxForAllWindows(SharedPtrGPU<float> &input);
+    void GetMaxForAllWindows(SharedPtrGPU<float> &input);
 
     SharedPtrGPU<cub::KeyValuePair<int, float>> result;
 
 private:
-    std::shared_ptr<int[]> _offsets;
-    SharedPtrGPU<int> _dOffsets;
-    SharedPtrGPU<char> _buffer;
+    std::shared_ptr<int[]> offsets_;
+    SharedPtrGPU<int> dev_cub_offsets_;
+    SharedPtrGPU<char> buffer_;
 
-    unsigned int _number_of_windows;
+    unsigned int number_of_windows_;
 };
 
 class FFTHandler
@@ -52,28 +49,28 @@ class FFTHandler
 public:
     FFTHandler(PIVParameters &parameters) : parameters_(parameters)
     {
-        const int segment_size = parameters.image_params.window_size;
+        const int segment_size = parameters.image_parameters.window_size;
 
         rank = 2;
         n[0] = n[1] = segment_size;
-        iDist = segment_size * segment_size;
-        oDist = segment_size * (segment_size / 2 + 1);
-        inEmbed[0] = inEmbed[1] = segment_size;
-        onEmbed[0] = segment_size;
-        onEmbed[1] = segment_size / 2 + 1;
+        i_dist = segment_size * segment_size;
+        o_dist = segment_size * (segment_size / 2 + 1);
+        in_embed[0] = in_embed[1] = segment_size;
+        on_embed[0] = segment_size;
+        on_embed[1] = segment_size / 2 + 1;
         stride = 1;
-        batchSize = parameters.image_params.getNumberOfWindows();
+        batch_size = parameters.image_parameters.GetNumberOfWindows();
     }
 
 protected:
     int rank;
     int n[2];
-    int iDist;
-    int oDist;
-    int inEmbed[2];
-    int onEmbed[2];
+    int i_dist;
+    int o_dist;
+    int in_embed[2];
+    int on_embed[2];
     int stride;
-    int batchSize;
+    int batch_size;
 
     PIVParameters &parameters_;
 };
@@ -83,18 +80,18 @@ class ForwardFFTHandler : public FFTHandler
 public:
     ForwardFFTHandler(PIVParameters &parameters) : FFTHandler(parameters)
     {
-        cufftPlanMany(&cufftHandler, rank, n, inEmbed, stride, iDist, onEmbed, stride, oDist, CUFFT_R2C, batchSize);
-        this->result = make_shared_gpu<cuComplex>(parameters.image_params.height * parameters.image_params.width);
+        cufftPlanMany(&cufft_handler_, rank, n, in_embed, stride, i_dist, on_embed, stride, o_dist, CUFFT_R2C, batch_size);
+        this->result = make_shared_gpu<cuComplex>(parameters.image_parameters.height * parameters.image_parameters.width);
     }
 
     ForwardFFTHandler &operator*=(const ForwardFFTHandler &other);
 
-    void computeForwardFFT(SharedPtrGPU<float> &image, bool to_conjugate = false);
+    void ComputeForwardFFT(SharedPtrGPU<float> &image, bool to_conjugate = false);
 
     SharedPtrGPU<cufftComplex> result;
 
 private:
-    cufftHandle cufftHandler;
+    cufftHandle cufft_handler_;
 };
 
 class BackwardFFTHandler : public FFTHandler
@@ -102,18 +99,18 @@ class BackwardFFTHandler : public FFTHandler
 public:
     BackwardFFTHandler(PIVParameters &parameters) : FFTHandler(parameters)
     {
-        cufftPlanMany(&cufftHandler, rank, n, onEmbed, stride, oDist, inEmbed, stride, iDist, CUFFT_C2R, batchSize);
-        this->result = make_shared_gpu<float>(parameters.image_params.height * parameters.image_params.width);
-        this->buffer = make_shared_gpu<float>(parameters.image_params.height * parameters.image_params.width);
+        cufftPlanMany(&cufft_handler_, rank, n, on_embed, stride, o_dist, in_embed, stride, i_dist, CUFFT_C2R, batch_size);
+        this->result = make_shared_gpu<float>(parameters.image_parameters.height * parameters.image_parameters.width);
+        this->buffer_ = make_shared_gpu<float>(parameters.image_parameters.height * parameters.image_parameters.width);
     }
 
-    void computeBackwardFFT(SharedPtrGPU<cuComplex> &image);
+    void ComputeBackwardFFT(SharedPtrGPU<cuComplex> &image);
 
     SharedPtrGPU<float> result;
 
 private:
-    SharedPtrGPU<float> buffer;
-    cufftHandle cufftHandler;
+    SharedPtrGPU<float> buffer_;
+    cufftHandle cufft_handler_;
 };
 
 class Interpolation
@@ -121,7 +118,7 @@ class Interpolation
 public:
     explicit Interpolation(PIVParameters &parameters);
 
-    void interpolate(SharedPtrGPU<float> &correlationFunction, SharedPtrGPU<cub::KeyValuePair<int, float>> &input);
+    void Interpolate(SharedPtrGPU<float> &correlation_function, SharedPtrGPU<cub::KeyValuePair<int, float>> &input);
 
     SharedPtrGPU<Point2D<float>> result;
 

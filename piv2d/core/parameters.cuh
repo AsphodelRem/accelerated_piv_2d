@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vector>
-
 enum InterpolationType
 {
     kGaussian = 0,
@@ -30,12 +28,12 @@ struct ImageParameters
         window_size,
         overlap;
 
-    unsigned int getNumberOfWindows()
+    unsigned int GetNumberOfWindows() const
     {
         return (width / window_size) * (height / window_size);
     }
 
-    std::pair<int, int> GetGridSize()
+    std::pair<int, int> GetGridSize() const
     {
         return {(height / window_size), (width / window_size)};
     }
@@ -43,24 +41,24 @@ struct ImageParameters
 
 struct FilterParameters
 {
-    int filterType, filterParameter;
+    int filter_type, filter_parameter;
 };
 
 struct InterpolationParameters
 {
-    int interpolationType;
+    int interpolation_type;
 };
 
 struct VectorCorrectionsParameters
 {
-    int correctionType;
-    int correctionParameter;
+    int correction_type;
+    int correction_parameter;
 };
 
 struct PIVParameters
 {
-    ImageParameters image_params;
-    FilterParameters filter_params;
-    VectorCorrectionsParameters correction_params;
-    InterpolationParameters interpolation_params;
+    ImageParameters image_parameters;
+    FilterParameters filter_parameters;
+    VectorCorrectionsParameters correction_parameters;
+    InterpolationParameters interpolation_parameters;
 };

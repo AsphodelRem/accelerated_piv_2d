@@ -1,79 +1,81 @@
 #pragma once
 
 #include <string>
-#include <queue>
 
 #include <opencv2/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc.hpp>
-#include <opencv2/cudaarithm.hpp>
-#include <opencv2/cudaimgproc.hpp>
 
 #include <device_smart_pointer.hpp>
 #include <image_statistic.cuh>
 #include <parameters.cuh>
 
-static __global__ void preprocessImage_kernel(
-    const uchar *deviceImage,
-    float *deviceSlicedImage,
-    unsigned int gridSizeX,
-    unsigned int gridSizeY,
-    unsigned int sizeOfSegment,
-    unsigned int imageWidth,
-    float topHat = 0.0)
+
+static __global__
+void PreprocessImage_kernel(
+    const uchar *dev_image,
+    float *dev_sliced_image,
+    unsigned int grid_size_x,
+    unsigned int grid_size_y,
+    unsigned int window_size,
+    unsigned int image_width,
+    float top_hat = 0.0)
 {
     unsigned int j = blockDim.x * blockIdx.x + threadIdx.x;
     unsigned int i = blockDim.y * blockIdx.y + threadIdx.y;
-    unsigned int windowYIdx = blockIdx.z;
+    unsigned int window_y_idx = blockIdx.z;
 
-    unsigned long long offsetX = 0, offsetY = 0;
+    unsigned long long offset_x = 0, offset_y = 0;
 
-    if (windowYIdx >= gridSizeY)
+    if (window_y_idx >= grid_size_y) {
         return;
-    if (i >= sizeOfSegment || j >= sizeOfSegment)
+    }
+    if (i >= window_size || j >= window_size) {
         return;
+    }
 
-    for (int windowXIdx = 0; windowXIdx < gridSizeX; windowXIdx++)
+    for (int window_x_idx = 0; window_x_idx < grid_size_x; window_x_idx++)
     {
-        offsetX = j + windowXIdx * sizeOfSegment;
-        offsetY = i + windowYIdx * sizeOfSegment;
+        offset_x = j + window_x_idx * window_size;
+        offset_y = i + window_y_idx * window_size;
 
         float value = 0.0;
-        if (((topHat * sizeOfSegment) < i < (sizeOfSegment - topHat * sizeOfSegment)) &&
-            ((topHat * sizeOfSegment) < j < (sizeOfSegment - topHat * sizeOfSegment)))
+        if (((top_hat * window_size) < i < (window_size - top_hat * window_size)) &&
+            ((top_hat * window_size) < j < (window_size - top_hat * window_size)))
         {
-            value = deviceImage[offsetY * imageWidth + offsetX];
+            value = dev_image[offset_y * image_width + offset_x];
         }
 
-        deviceSlicedImage[(windowYIdx * gridSizeX + windowXIdx) * sizeOfSegment * sizeOfSegment +
-                          (i * sizeOfSegment + j)] = value;
+        dev_sliced_image[(window_y_idx * grid_size_x + window_x_idx) * window_size * window_size +
+            (i * window_size + j)] = value;
     }
 }
 
 static void
-preprocessImage(SharedPtrGPU<unsigned char> &grayImage,
-                SharedPtrGPU<float> &slicedImage,
-                PIVParameters &params,
+PreprocessImage(SharedPtrGPU<unsigned char> &gray_image,
+                SharedPtrGPU<float> &sliced_image,
+                PIVParameters &parameters,
                 cudaStream_t stream = 0,
-                float topHat = 0.0)
+                float top_hat = 0.0)
 {
-    int window_size = params.image_params.window_size;
-    int grid_size_x = params.image_params.width / window_size;
-    int grid_size_y = params.image_params.height / window_size;
-    int image_width = params.image_params.width;
+    int window_size = parameters.image_parameters.window_size;
+    int grid_size_x = parameters.image_parameters.width / window_size;
+    int grid_size_y = parameters.image_parameters.height / window_size;
+    int image_width = parameters.image_parameters.width;
 
-    dim3 gridSize = {window_size / 16, window_size / 16, grid_size_y};
-    dim3 threadPerBlock = {16, 16};
+    dim3 grid_size = {window_size / 16, window_size / 16, grid_size_y};
+    dim3 thread_per_block = {16, 16};
 
-    preprocessImage_kernel<<<gridSize, threadPerBlock, 0, stream>>>(grayImage.get(),
-                                                                    slicedImage.get(),
+    PreprocessImage_kernel<<<grid_size, thread_per_block, 0, stream>>>(gray_image.get(),
+                                                                    sliced_image.get(),
                                                                     grid_size_x,
                                                                     grid_size_y,
                                                                     window_size,
                                                                     image_width);
 }
 
-static __global__ void rgbToGray_kernel(unsigned char *rgbImage, unsigned char *grayImage, int width, int height, int channels)
+static __global__
+void RgbToGray_kernel(unsigned char *rgb_image, unsigned char *gray_image, int width, int height, int channels)
 {
     unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -81,23 +83,23 @@ static __global__ void rgbToGray_kernel(unsigned char *rgbImage, unsigned char *
     if (x < width && y < height)
     {
         unsigned int rgbOffset = y * width * channels + x * channels;
-        unsigned int grayOffset = y * width + x;
+        unsigned int gray_offset = y * width + x;
 
-        uchar r = rgbImage[rgbOffset];
-        uchar g = rgbImage[rgbOffset + 1];
-        uchar b = rgbImage[rgbOffset + 2];
+        uchar r = rgb_image[rgbOffset];
+        uchar g = rgb_image[rgbOffset + 1];
+        uchar b = rgb_image[rgbOffset + 2];
 
-        grayImage[grayOffset] = static_cast<uchar>(0.299f * r + 0.587f * g + 0.114f * b);
+        gray_image[gray_offset] = static_cast<uchar>(0.299f * r + 0.587f * g + 0.114f * b);
     }
 }
 
 static void
-makeGrayScale(SharedPtrGPU<unsigned char> &rgbImage, SharedPtrGPU<unsigned char> &grayImage, int width, int height, int channels)
+MakeGrayScale(SharedPtrGPU<unsigned char> &rgb_image, SharedPtrGPU<unsigned char> &gray_image, int width, int height, int channels)
 {
     dim3 grid = {static_cast<unsigned int>(width / 32), static_cast<unsigned int>(height / 32)};
-    dim3 threadPerBlock = {32, 32};
+    dim3 thread_per_block = {32, 32};
 
-    rgbToGray_kernel<<<grid, threadPerBlock>>>(rgbImage.get(), grayImage.get(), width, height, channels);
+    RgbToGray_kernel<<<grid, thread_per_block>>>(rgb_image.get(), gray_image.get(), width, height, channels);
 }
 
 template <typename T>
@@ -107,17 +109,17 @@ public:
     ImagePair();
     ImagePair(std::string image_1, std::string image_2);
 
-    ImagePair<T> &uploadNewImages(std::string image_1, std::string image_2);
-    ImagePair<T> &uploadNewImages(cv::Mat &image_1, cv::Mat &image_2);
+    ImagePair<T> &UploadNewImages(std::string image_1, std::string image_2);
+    ImagePair<T> &UploadNewImages(cv::Mat &image_1, cv::Mat &image_2);
 
-    SharedPtrGPU<T> &getFirstImage();
-    SharedPtrGPU<T> &getSecondImage();
+    SharedPtrGPU<T> &GetFirstImage();
+    SharedPtrGPU<T> &GetSecondImage();
 
 private:
-    SharedPtrGPU<T> image_a, image_b;
-    SharedPtrGPU<T> buffer_1, buffer_2;
+    SharedPtrGPU<T> image_a_, image_b_;
+    SharedPtrGPU<T> buffer_1_, buffer_2_;
 
-    void _loadData(cv::Mat &image_1, cv::Mat &image_2);
+    void LoadData_(cv::Mat &image_1, cv::Mat &image_2);
 };
 
 template <typename T, typename T2>
@@ -125,17 +127,16 @@ class SlicedImagePair
 {
 public:
     SlicedImagePair();
-    SlicedImagePair(ImagePair<T> &inputImages, PIVParameters &params);
+    SlicedImagePair(ImagePair<T> &input_images, const PIVParameters &parameters);
 
     SlicedImagePair<T, T2> &
-    uploadNewImages(ImagePair<T> &newImages);
+    UploadNewImages(ImagePair<T> &new_images);
 
-    SharedPtrGPU<T2> &getFirstImage();
-    SharedPtrGPU<T2> &getSecondImage();
+    SharedPtrGPU<T2> &GetFirstImage();
+    SharedPtrGPU<T2> &GetSecondImage();
 
 private:
-    SharedPtrGPU<T2> outputFirstImage, outputSecondImage;
-
+    SharedPtrGPU<T2> output_first_image_, output_second_images_;
     PIVParameters parameters_;
 };
 
@@ -153,111 +154,111 @@ ImagePair<T>::ImagePair(std::string image_1, std::string image_2)
         throw std::runtime_error("Images should have same shape");
     }
 
-    unsigned int imageWidth = image_a.cols,
-                 imageHeight = image_b.rows;
+    unsigned int image_width = image_a.cols,
+                 image_height = image_b.rows;
 
     unsigned int channels = image_a.channels();
 
-    unsigned long long int size = imageWidth * imageHeight * channels;
+    unsigned long long int size = image_width * image_height * channels;
 
     // Creating buffer for storing rgb image
-    this->buffer_1 = make_shared_gpu<unsigned char>(size).uploadHostData(image_a.data, size);
-    this->buffer_2 = make_shared_gpu<unsigned char>(size).uploadHostData(image_b.data, size);
+    this->buffer_1_ = make_shared_gpu<unsigned char>(size).UploadHostData(image_a.data, size);
+    this->buffer_2_ = make_shared_gpu<unsigned char>(size).UploadHostData(image_b.data, size);
 
-    this->image_a = make_shared_gpu<unsigned char>(imageWidth * imageHeight);
-    this->image_b = make_shared_gpu<unsigned char>(imageWidth * imageHeight);
+    this->image_a_ = make_shared_gpu<unsigned char>(image_width * image_height);
+    this->image_b_ = make_shared_gpu<unsigned char>(image_width * image_height);
 
     if (channels != 1)
     {
-        makeGrayScale(this->buffer_1, this->image_a, imageWidth, imageHeight, channels);
-        makeGrayScale(this->buffer_2, this->image_b, imageWidth, imageHeight, channels);
+        MakeGrayScale(this->buffer_1_, this->image_a_, image_width, image_height, channels);
+        MakeGrayScale(this->buffer_2_, this->image_b_, image_width, image_height, channels);
     }
 }
 template <typename T>
-ImagePair<T> &ImagePair<T>::uploadNewImages(std::string image_1, std::string image_2)
+ImagePair<T> &ImagePair<T>::UploadNewImages(std::string image_1, std::string image_2)
 {
     cv::Mat image_a = cv::imread(image_1);
     cv::Mat image_b = cv::imread(image_2);
 
-    this->_loadData(image_a, image_b);
+    this->LoadData_(image_a, image_b);
 
     return *this;
 }
 
 template <typename T>
-ImagePair<T> &ImagePair<T>::uploadNewImages(cv::Mat &image_1, cv::Mat &image_2)
+ImagePair<T> &ImagePair<T>::UploadNewImages(cv::Mat &image_1, cv::Mat &image_2)
 {
-    this->_loadData(image_1, image_2);
+    this->LoadData_(image_1, image_2);
 
     return *this;
 }
 
 template <typename T>
-void ImagePair<T>::_loadData(cv::Mat &image_1, cv::Mat &image_2)
+void ImagePair<T>::LoadData_(cv::Mat &image_1, cv::Mat &image_2)
 {
     if (image_1.cols != image_2.cols || image_1.rows != image_2.rows)
     {
         throw std::runtime_error("Images should have same shape");
     }
 
-    unsigned int imageWidth = image_1.cols, imageHeight = image_1.rows;
-    unsigned int channels = image_1.channels(), size = imageHeight * imageWidth * channels;
+    unsigned int image_width = image_1.cols;
+    unsigned int image_height = image_1.rows;
+    unsigned int channels = image_1.channels(), size = image_height * image_width * channels;
 
-    this->buffer_1.uploadHostData(image_1.data, size);
-    this->buffer_2.uploadHostData(image_2.data, size);
+    this->buffer_1_.UploadHostData(image_1.data, size);
+    this->buffer_2_.UploadHostData(image_2.data, size);
 
     if (channels != 1)
     {
-        makeGrayScale(this->buffer_1, this->image_a, imageWidth, imageHeight, channels);
-        makeGrayScale(this->buffer_2, this->image_b, imageWidth, imageHeight, channels);
+        MakeGrayScale(this->buffer_1_, this->image_a_, image_width, image_height, channels);
+        MakeGrayScale(this->buffer_2_, this->image_b_, image_width, image_height, channels);
     }
 }
 
 template <typename T>
-SharedPtrGPU<T> &ImagePair<T>::getFirstImage()
+SharedPtrGPU<T> &ImagePair<T>::GetFirstImage()
 {
-    return this->image_a;
+    return this->image_a_;
 }
 
 template <typename T>
-SharedPtrGPU<T> &ImagePair<T>::getSecondImage()
+SharedPtrGPU<T> &ImagePair<T>::GetSecondImage()
 {
-    return this->image_b;
+    return this->image_b_;
 }
 
 template <typename T, typename T2>
 SlicedImagePair<T, T2>::SlicedImagePair() = default;
 
 template <typename T, typename T2>
-SlicedImagePair<T, T2>::SlicedImagePair(ImagePair<T> &inputImages, PIVParameters &params) : parameters_(params)
+SlicedImagePair<T, T2>::SlicedImagePair(ImagePair<T> &input_images, const PIVParameters &parameters) : parameters_(parameters)
 {
-    int grid_size_x = params.image_params.width / params.image_params.window_size;
-    int grid_size_y = params.image_params.height / params.image_params.window_size;
+    this->output_first_image_ = make_shared_gpu<T2>(input_images.GetFirstImage().size() / sizeof(T));
+    this->output_second_images_ = make_shared_gpu<T2>(input_images.GetFirstImage().size() / sizeof(T));
 
-    this->outputFirstImage = make_shared_gpu<T2>(inputImages.getFirstImage().size() / sizeof(T));
-    this->outputSecondImage = make_shared_gpu<T2>(inputImages.getFirstImage().size() / sizeof(T));
-
-    this->uploadNewImages(inputImages);
+    this->UploadNewImages(input_images);
 }
 
 template <typename T, typename T2>
-SlicedImagePair<T, T2> &SlicedImagePair<T, T2>::uploadNewImages(ImagePair<T> &newImages)
+SlicedImagePair<T, T2> &SlicedImagePair<T, T2>::UploadNewImages(ImagePair<T> &new_images)
 {
-    auto firstImage = newImages.getFirstImage();
-    auto secondImage = newImages.getSecondImage();
+    auto first_image = new_images.GetFirstImage();
+    auto second_image = new_images.GetSecondImage();
 
-    preprocessImage(firstImage, this->outputFirstImage, this->parameters_);
-    preprocessImage(secondImage, this->outputSecondImage, this->parameters_);
+    PreprocessImage(first_image, this->output_first_image_, this->parameters_);
+    PreprocessImage(second_image, this->output_second_images_, this->parameters_);
+
+    return *this;
 }
 
 template <typename T, typename T2>
-SharedPtrGPU<T2> &SlicedImagePair<T, T2>::getFirstImage()
+SharedPtrGPU<T2> &SlicedImagePair<T, T2>::GetFirstImage()
 {
-    return this->outputFirstImage;
+    return this->output_first_image_;
 }
 
 template <typename T, typename T2>
-SharedPtrGPU<T2> &SlicedImagePair<T, T2>::getSecondImage()
+SharedPtrGPU<T2> &SlicedImagePair<T, T2>::GetSecondImage()
 {
-    return this->outputSecondImage;
+    return this->output_second_images_;
 }

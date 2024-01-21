@@ -5,56 +5,60 @@
 
 PIVDataContainer::PIVDataContainer(PIVParameters &parameters) : parameters_(parameters)
 {
-    auto number_of_window = parameters.image_params.getNumberOfWindows();
+    auto number_of_window = parameters.image_parameters.GetNumberOfWindows();
 
-    this->host_data_ = std::make_shared<Point2D<float>[]>(number_of_window);
+    this->data = std::make_shared<Point2D<float>[]>(number_of_window);
     this->preprocessed_data_ = make_shared_gpu<Point2D<float>>(number_of_window);
-
-    this->data.reserve(number_of_window);
 }
 
-__global__ void findMovements_kernel(Point2D<float> *interpolatedCoordinates, Point2D<float> *outputSpeed, unsigned int length,
-                                     float scaleFactor, float time, unsigned int segmentSize, bool toPhysicalView = false)
+__global__
+void FindMovements_kernel(Point2D<float> *interpolated_coordinates,
+                                    Point2D<float> *output_speed,
+                                    unsigned int length,
+                                    float scale_factor,
+                                    float time,
+                                    unsigned int window_size,
+                                    bool to_physical_view = false)
 {
     unsigned int idx = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (idx < length)
     {
-        bool isThereMovementsByX = (interpolatedCoordinates[idx].x != 0);
-        bool isThereMovementsByY = (interpolatedCoordinates[idx].y != 0);
+        bool is_there_movements_by_x = (interpolated_coordinates[idx].x != 0);
+        bool is_there_movements_by_y = (interpolated_coordinates[idx].y != 0);
 
-        outputSpeed[idx].x = isThereMovementsByX * (interpolatedCoordinates[idx].x - (segmentSize / 2)) * scaleFactor / time;
-        outputSpeed[idx].y = isThereMovementsByY * (interpolatedCoordinates[idx].y - (segmentSize / 2)) * scaleFactor / time;
+        output_speed[idx].x = is_there_movements_by_x * (interpolated_coordinates[idx].x - (window_size / 2)) * scale_factor / time;
+        output_speed[idx].y = is_there_movements_by_y * (interpolated_coordinates[idx].y - (window_size / 2)) * scale_factor / time;
 
-        if (toPhysicalView)
+        if (to_physical_view)
         {
-            outputSpeed[idx].y = -outputSpeed[idx].y;
+            output_speed[idx].y = -output_speed[idx].y;
         }
     }
 }
 
-void findMovements(SharedPtrGPU<Point2D<float>> &input, SharedPtrGPU<Point2D<float>> &output, PIVParameters &parameters)
+void FindMovements(SharedPtrGPU<Point2D<float>> &input, SharedPtrGPU<Point2D<float>> &output, PIVParameters &parameters)
 {
-    auto length = parameters.image_params.getNumberOfWindows();
+    auto length = parameters.image_parameters.GetNumberOfWindows();
 
-    dim3 gridSize = {(length + 127) / 128};
-    dim3 threadsPerBlock = {128};
+    dim3 grid_size = {(length + 127) / 128};
+    dim3 threads_per_block = {128};
 
-    findMovements_kernel<<<gridSize, threadsPerBlock>>>(input.get(),
+    FindMovements_kernel<<<grid_size, threads_per_block>>>(input.get(),
                                                         output.get(),
                                                         length,
                                                         1, 1,
-                                                        parameters.image_params.window_size);
+                                                        parameters.image_parameters.window_size);
 }
 
-void PIVDataContainer::storeData(SharedPtrGPU<Point2D<float>> &data)
+void PIVDataContainer::StoreData(SharedPtrGPU<Point2D<float>> &data)
 {
-    findMovements(data, preprocessed_data_, parameters_);
+    FindMovements(data, preprocessed_data_, parameters_);
 
-    preprocessed_data_.copyDataToHost(this->host_data_.get());
+    preprocessed_data_.CopyDataToHost(this->data.get());
 }
 
-PIVDataContainer startPIV2D(ImageContainer &container, PIVParameters &parameters)
+PIVDataContainer StartPIV2D(ImageContainer &container, PIVParameters &parameters)
 {
     ForwardFFTHandler fourier_image_1(parameters);
     ForwardFFTHandler fourier_image_2(parameters);
@@ -67,22 +71,22 @@ PIVDataContainer startPIV2D(ImageContainer &container, PIVParameters &parameters
 
     PIVDataContainer data(parameters);
 
-    while (!container.isEmpty())
+    while (!container.IsEmpty())
     {
-        auto new_data = container.getImages();
+        auto new_data = container.GetImages();
 
-        fourier_image_1.computeForwardFFT(new_data.getFirstImage(), true);
-        fourier_image_2.computeForwardFFT(new_data.getSecondImage());
+        fourier_image_1.ComputeForwardFFT(new_data.GetFirstImage(), true);
+        fourier_image_2.ComputeForwardFFT(new_data.GetSecondImage());
 
         fourier_image_1 *= fourier_image_2;
 
-        correlation_function.computeBackwardFFT(fourier_image_1.result);
+        correlation_function.ComputeBackwardFFT(fourier_image_1.result);
 
-        multi_max_search.getMaxForAllWindows(correlation_function.result);
+        multi_max_search.GetMaxForAllWindows(correlation_function.result);
 
-        interpolation.interpolate(correlation_function.result, multi_max_search.result);
+        interpolation.Interpolate(correlation_function.result, multi_max_search.result);
 
-        data.storeData(interpolation.result);
+        data.StoreData(interpolation.result);
     }
 
     return data;

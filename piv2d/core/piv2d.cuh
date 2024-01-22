@@ -10,7 +10,9 @@
 #include <utils/device_smart_pointer.hpp>
 #include <image_container.cuh>
 #include <parameters.cuh>
-#include <math/math.cuh>
+#include <math/multivalue_argmax.cuh>
+#include <math/interpolations.cuh>
+#include <math/fft_handlers.cuh>
 
 class PIVDataContainer
 {
@@ -19,7 +21,6 @@ public:
 
     void SaveDataInCSV() = delete;
 
-    // std::vector<Point2D<float>> data;
     std::shared_ptr<Point2D<float>[]> data;
 
     void StoreData(SharedPtrGPU<Point2D<float>> &data);

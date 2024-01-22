@@ -1,13 +1,13 @@
 #pragma once
 
-enum InterpolationType
+enum class InterpolationType
 {
     kGaussian = 0,
     kParabolic,
     kCentroid,
 };
 
-enum FilterType
+enum class FilterType
 {
     kLowPass = 0,
     kBandPass,
@@ -15,7 +15,7 @@ enum FilterType
     kNoFilter,
 };
 
-enum CorrectionType
+enum class CorrectionType
 {
     kCorrelationBasedCorrection = 0,
     kMedianCorrection,
@@ -41,17 +41,18 @@ struct ImageParameters
 
 struct FilterParameters
 {
-    int filter_type, filter_parameter;
+    FilterType filter_type;
+    int filter_parameter;
 };
 
 struct InterpolationParameters
 {
-    int interpolation_type;
+    InterpolationType interpolation_type;
 };
 
 struct VectorCorrectionsParameters
 {
-    int correction_type;
+    CorrectionType correction_type;
     int correction_parameter;
 };
 

@@ -1,7 +1,4 @@
 #include <piv2d.cuh>
-#include <device_smart_pointer.hpp>
-#include <math/math.cuh>
-#include <parameters.cuh>
 
 PIVDataContainer::PIVDataContainer(PIVParameters &parameters) : parameters_(parameters)
 {

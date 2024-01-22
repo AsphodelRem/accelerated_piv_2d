@@ -1,12 +1,16 @@
 #pragma once
 
-#include <image.cuh>
 #include <queue>
+
+#include <image.cuh>
+#include <parameters.cuh>
 
 class IDataContainer
 {
 public:
-    IDataContainer() = default;
+    explicit IDataContainer(const PIVParameters& parameters)
+        : parameters_(parameters) {};
+
     virtual ~IDataContainer() = default;
 
     virtual SlicedImagePair<unsigned char, float>& GetImages() = 0;
@@ -15,8 +19,10 @@ private:
     // void cutImagesIntoWindows() {};
     // void normalize() {};
 
-    bool use_run_statistic_;
-    int batch_number_;
+    // bool use_run_statistic_;
+    // int batch_number_;
+
+    const PIVParameters& parameters_;
 };
 
 class ImageContainer : IDataContainer
@@ -24,7 +30,7 @@ class ImageContainer : IDataContainer
 public:
     using ListOfFiles = std::queue<std::string>;
 
-    ImageContainer(ListOfFiles& file_names, PIVParameters& parameters);
+    ImageContainer(ListOfFiles &file_names, const PIVParameters &parameters);
     ~ImageContainer() = default;
 
     SlicedImagePair<unsigned char, float>& GetImages() override;
@@ -36,7 +42,6 @@ private:
     SlicedImagePair<unsigned char, float> output_images_;
 
     ListOfFiles& file_names_;
-    PIVParameters& parameters_;
 
     SharedPtrGPU<float> buffer_1_, buffer_2_;
 };

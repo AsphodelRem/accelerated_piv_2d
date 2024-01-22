@@ -1,7 +1,10 @@
-#include "image_container.cuh"
-#include "parameters.cuh"
+#include <image_container.cuh>
 
-ImageContainer::ImageContainer(ListOfFiles &file_names, PIVParameters &parameters) : file_names_(file_names), parameters_(parameters)
+ImageContainer::ImageContainer(ListOfFiles &file_names,
+    const PIVParameters &parameters)
+    : IDataContainer(parameters)
+    , file_names_(file_names)
+
 {
     if (file_names.size() == 0 || file_names.size() % 2 != 0)
     {

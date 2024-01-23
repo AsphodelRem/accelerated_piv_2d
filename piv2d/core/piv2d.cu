@@ -62,6 +62,8 @@ PIVDataContainer StartPIV2D(ImageContainer &container, PIVParameters &parameters
 
     BackwardFFTHandler correlation_function(parameters);
 
+    Filter filter(parameters);
+
     MultiArgMaxSearch multi_max_search(parameters);
 
     Interpolation interpolation(parameters);
@@ -76,6 +78,8 @@ PIVDataContainer StartPIV2D(ImageContainer &container, PIVParameters &parameters
         fourier_image_2.ComputeForwardFFT(new_data.GetSecondImage());
 
         fourier_image_1 *= fourier_image_2;
+
+        filter.filter(fourier_image_1.result);
 
         correlation_function.ComputeBackwardFFT(fourier_image_1.result);
 

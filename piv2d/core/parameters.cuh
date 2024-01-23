@@ -37,12 +37,16 @@ struct ImageParameters
     {
         return {(height / window_size), (width / window_size)};
     }
+
+    std::pair<int, int> GetSpectrumSize() const {
+        return {  };
+    }
 };
 
 struct FilterParameters
 {
     FilterType filter_type;
-    int filter_parameter;
+    float filter_parameter;
 };
 
 struct InterpolationParameters

@@ -32,7 +32,7 @@ void BandPassFilter_kernel(cuComplex *spectrum, int U, int V)
     if (u < U && v < V)
     {
         float r = sqrtf((2.0 * u / U) * (2.0 * u / U) + (2.0 * v / V) * (2.0 * v / V));
-        float value = 0.0;
+        float value = 1.0;
 
         if (r <= 0.25)
         {
@@ -48,7 +48,7 @@ void BandPassFilter_kernel(cuComplex *spectrum, int U, int V)
         }
         else if (r > 1)
         {
-            value = 0;
+            // value = 0;
         }
 
         spectrum[u * V + v].x *= value;
@@ -76,18 +76,20 @@ void BandPassFilter(cuComplex *spectrum, unsigned int height, unsigned int width
 
 void DoSpectrumFiltering(cuComplex *spectrum, const PIVParameters& parameters)
 {
-    auto height = parameters.image_parameters.height;
-    auto width = parameters.image_parameters.width;
+    auto [height, width] = parameters.image_parameters.GetSpectrumSize();
+    const unsigned int spectrum_height = height;
+    const unsigned int spectrum_width = width;
+
     auto filter_parameter = parameters.filter_parameters.filter_parameter;
 
     switch (parameters.filter_parameters.filter_type)
     {
         case FilterType::kLowPass:
-            LowPassFilter(spectrum, height, width, filter_parameter);
+            LowPassFilter(spectrum, spectrum_height, spectrum_width, filter_parameter);
             break;
 
         case FilterType::kBandPass:
-            BandPassFilter(spectrum, height, width);
+            BandPassFilter(spectrum, spectrum_height, spectrum_width);
             break;
 
         default:

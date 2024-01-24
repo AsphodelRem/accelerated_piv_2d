@@ -39,7 +39,8 @@ struct ImageParameters
     }
 
     std::pair<int, int> GetSpectrumSize() const {
-        return {  };
+        return { height - (height % window_size),
+            (width - (width % window_size)) / window_size * (window_size / 2 + 1) };
     }
 };
 

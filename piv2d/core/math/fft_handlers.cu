@@ -20,8 +20,12 @@ ForwardFFTHandler::ForwardFFTHandler(const PIVParameters &parameters) : FFTHandl
 {
   cufftPlanMany(&cufft_handler_, rank, n, in_embed, stride,
     i_dist, on_embed, stride, o_dist, CUFFT_R2C, batch_size);
-  this->result = make_shared_gpu<cuComplex>(parameters.image_parameters.height *
-    parameters.image_parameters.width);
+
+  auto [height, width] = this->parameters_.image_parameters.GetSpectrumSize();
+  const int spectrum_height = height;
+  const int spectrum_width = width;
+
+  this->result = make_shared_gpu<cuComplex>(spectrum_height * spectrum_width);
 }
 
 void ForwardFFTHandler::ComputeForwardFFT(const SharedPtrGPU<float> &image, bool to_conjugate)
@@ -38,12 +42,9 @@ void ForwardFFTHandler::ComputeForwardFFT(const SharedPtrGPU<float> &image, bool
 ForwardFFTHandler &
 ForwardFFTHandler::operator*=(const ForwardFFTHandler &other)
 {
-  auto window_size = this->parameters_.image_parameters.window_size;
-  auto image_height = this->parameters_.image_parameters.height;
-  auto image_width = this->parameters_.image_parameters.width;
-
-  auto spectrum_height = image_height - (image_height % window_size);
-  auto spectrum_width = (image_width - (image_width % window_size)) / window_size * (window_size / 2 + 1);
+  auto [height, width] = this->parameters_.image_parameters.GetSpectrumSize();
+  const int spectrum_height = height;
+  const int spectrum_width = width;
 
   ElementwiseMultiplication(this->result.get(), other.result.get(), spectrum_height, spectrum_width);
 

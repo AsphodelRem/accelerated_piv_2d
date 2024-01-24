@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tuple>
+
 #include <cuComplex.h>
 #include <cufft.h>
 

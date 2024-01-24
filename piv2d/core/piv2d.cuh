@@ -13,6 +13,7 @@
 #include <math/multivalue_argmax.cuh>
 #include <math/interpolations.cuh>
 #include <math/fft_handlers.cuh>
+#include <math/filters.cuh>
 
 class PIVDataContainer
 {

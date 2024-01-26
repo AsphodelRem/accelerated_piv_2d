@@ -8,20 +8,13 @@
 class IDataContainer
 {
 public:
-    explicit IDataContainer(const PIVParameters& parameters)
-        : parameters_(parameters) {};
+    explicit IDataContainer(const PIVParameters& parameters);
 
     virtual ~IDataContainer() = default;
 
-    virtual SlicedImagePair<unsigned char, float>& GetImages() = 0;
+    virtual PreprocessedImagesPair<unsigned char, float>& GetImages() = 0;
 
-private:
-    // void cutImagesIntoWindows() {};
-    // void normalize() {};
-
-    // bool use_run_statistic_;
-    // int batch_number_;
-
+protected:
     const PIVParameters& parameters_;
 };
 
@@ -33,13 +26,13 @@ public:
     ImageContainer(ListOfFiles &file_names, const PIVParameters &parameters);
     ~ImageContainer() = default;
 
-    SlicedImagePair<unsigned char, float>& GetImages() override;
+    PreprocessedImagesPair<unsigned char, float>& GetImages() override;
 
     bool IsEmpty() const;
 
 private:
     ImagePair<unsigned char> input_images_;
-    SlicedImagePair<unsigned char, float> output_images_;
+    PreprocessedImagesPair<unsigned char, float> output_images_;
 
     ListOfFiles& file_names_;
 
@@ -52,5 +45,5 @@ public:
     VideoContainer(std::string file_name);
     ~VideoContainer();
 
-    SlicedImagePair<unsigned char, float>& GetImages();
+    PreprocessedImagesPair<unsigned char, float>& GetImages();
 };

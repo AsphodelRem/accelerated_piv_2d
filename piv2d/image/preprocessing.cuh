@@ -6,8 +6,7 @@
 #include <parameters.cuh>
 
 static __global__
-void PreprocessImage_kernel(
-    const uchar *dev_image,
+void PreprocessImage_kernel(const uchar *dev_image,
     float *dev_sliced_image,
     unsigned int grid_size_x,
     unsigned int grid_size_y,
@@ -46,33 +45,30 @@ void PreprocessImage_kernel(
 }
 
 static void
-PreprocessImage(const SharedPtrGPU<unsigned char> &gray_image,
+SplitImageIntoWindows(const SharedPtrGPU<unsigned char> &gray_image,
                 const SharedPtrGPU<float> &sliced_image,
-                const PIVParameters &parameters,
-                const cudaStream_t stream = 0,
-                const float top_hat = 0.0)
+                const PIVParameters &parameters)
 {
-    int window_size = parameters.image_parameters.window_size;
-    int grid_size_x = parameters.image_parameters.width / window_size;
-    int grid_size_y = parameters.image_parameters.height / window_size;
-    int image_width = parameters.image_parameters.width;
+    const unsigned window_size = parameters.image_parameters.window_size;
+    const unsigned grid_size_x = parameters.image_parameters.width / window_size;
+    const unsigned grid_size_y = parameters.image_parameters.height / window_size;
+    const unsigned image_width = parameters.image_parameters.width;
 
     dim3 grid_size = {window_size / 16, window_size / 16, grid_size_y};
     dim3 thread_per_block = {16, 16};
 
-    PreprocessImage_kernel<<<grid_size, thread_per_block, 0, stream>>>(
-    gray_image.get(),
-    sliced_image.get(),
-    grid_size_x,
-    grid_size_y,
-    window_size,
-    image_width);
+    PreprocessImage_kernel<<<grid_size, thread_per_block>>>(gray_image.get(),
+                                                            sliced_image.get(),
+                                                            grid_size_x,
+                                                            grid_size_y,
+                                                            window_size,
+                                                            image_width);
 }
 
 static __global__
 void RgbToGray_kernel(const unsigned char *rgb_image,
-    unsigned char *gray_image,
-    int width, int height, int channels)
+                    unsigned char *gray_image,
+                    int width, int height, int channels)
 {
     unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -92,10 +88,10 @@ void RgbToGray_kernel(const unsigned char *rgb_image,
 
 static void
 MakeGrayScale(const SharedPtrGPU<unsigned char> &rgb_image,
-                SharedPtrGPU<unsigned char> &gray_image,
-                int width,
-                int height,
-                int channels)
+            SharedPtrGPU<unsigned char> &gray_image,
+            const int width,
+            const int height,
+            const int channels)
 {
     dim3 grid = { static_cast<unsigned int>(width / 32),
         static_cast<unsigned int>(height / 32) };
@@ -104,5 +100,34 @@ MakeGrayScale(const SharedPtrGPU<unsigned char> &rgb_image,
 
     RgbToGray_kernel<<<grid, thread_per_block>>>(rgb_image.get(),
         gray_image.get(), width, height, channels);
+}
+
+static __global__
+void Normalize_kernel(float* input_1, double* mean, double* var, int length)
+{
+    unsigned int index = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (index >= length) {
+        return;
+    }
+
+    const float mean_ = *mean;
+    const float var_ = *var;
+
+    input_1[index] -= mean_;
+    input_1[index] /= var_;
+}
+
+static void NormalizeImage(SharedPtrGPU<float>& input,
+    const SharedPtrGPU<double>& mean,
+    const SharedPtrGPU<double>& var,
+    const PIVParameters& parameters)
+{
+    const unsigned length = parameters.image_parameters.height * parameters.image_parameters.width;
+
+    int threads_per_block = 1024;
+    int grid_size = (length + threads_per_block - 1) / threads_per_block;
+
+    Normalize_kernel<<<grid_size, threads_per_block>>>(input.get(), mean.get(), var.get(), length);
 }
 

@@ -1,5 +1,7 @@
 #include <image_container.cuh>
 
+IDataContainer::IDataContainer(const PIVParameters& parameters) : parameters_(parameters) {};
+
 ImageContainer::ImageContainer(ListOfFiles &file_names,
     const PIVParameters &parameters)
     : IDataContainer(parameters)
@@ -15,7 +17,7 @@ ImageContainer::ImageContainer(ListOfFiles &file_names,
     const std::string file_2_name = this->file_names_.front();
 
     this->input_images_ = ImagePair<unsigned char>(file_1_name, file_2_name);
-    this->output_images_ = SlicedImagePair<unsigned char, float>(this->input_images_, parameters);
+    this->output_images_ = PreprocessedImagesPair<unsigned char, float>(this->input_images_, parameters);
 }
 
 bool ImageContainer::IsEmpty() const
@@ -24,7 +26,7 @@ bool ImageContainer::IsEmpty() const
 }
 
 // template <typename T, typename T2>
-SlicedImagePair<unsigned char, float> &ImageContainer::GetImages()
+PreprocessedImagesPair<unsigned char, float> &ImageContainer::GetImages()
 {
     if (!this->IsEmpty())
     {

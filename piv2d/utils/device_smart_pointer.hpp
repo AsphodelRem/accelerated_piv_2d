@@ -63,7 +63,7 @@ public:
 
     T &operator*() const
     {
-        return this->raw_data_ptr_;
+        return *this->raw_data_ptr_;
     }
 
     inline unsigned long long size() const

@@ -14,7 +14,7 @@ include_directories(image core utils)
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-set(LIBS cufft)
+set(LIBS cufft nppc nppicc nppist)
 
 file(GLOB CORE_SOURCE_FILES
         "core/*.cpp"

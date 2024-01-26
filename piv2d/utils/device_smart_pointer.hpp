@@ -7,9 +7,14 @@ template <typename T>
 class SharedPtrGPU
 {
 public:
-    SharedPtrGPU() :  raw_data_ptr_(nullptr), owners_(new unsigned long long(0)), size_(0) {};
+    SharedPtrGPU()
+    : raw_data_ptr_(nullptr)
+    , owners_(new unsigned long long(0))
+    , size_(0) {};
 
-    SharedPtrGPU(const size_t size_in_bytes) :  owners_(new unsigned long long(1)), size_(size_in_bytes)
+    SharedPtrGPU(const size_t size_in_bytes)
+    : owners_(new unsigned long long(0))
+    , size_(size_in_bytes)
     {
         auto status = cudaMalloc(reinterpret_cast<void**>(&this->raw_data_ptr_), this->size_);
 
@@ -113,7 +118,6 @@ private:
         {
             cudaFree(this->raw_data_ptr_);
             delete this->owners_;
-            delete this;
         }
     }
 

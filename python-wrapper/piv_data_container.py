@@ -1,12 +1,19 @@
 import os
 
+import accelerated_piv_cpp as cpp_module
+
 
 class DataContainer:
     def __init__(self, files: list[str]):
         self.files = files
+        self.img_queue = cpp_module.ImagesQueue()
+
+        # Temporary solution of course :)
+        for item in self.files:
+            self.img_queue.push(item)
 
     def get_data(self):
-        return self.files
+        return self.img_queue
 
     @classmethod
     def from_video(cls, path_to_video: str):

@@ -4,37 +4,34 @@ import toml
 import accelerated_piv_cpp as cpp_module
 
 
-@enum.unique
 class Interpolations(enum.Enum):
-    GAUSS = "gauss",
-    CENTROID = "centroid",
-    PARABOLIC = "parabolic"
+    GAUSS = cpp_module.InterpolationType.kGaussian
+    CENTROID = cpp_module.InterpolationType.kCentroid
+    PARABOLIC = cpp_module.InterpolationType.kParabolic
 
 
-@enum.unique
 class Filters(enum.Enum):
-    NO_DC = "no_dc",
-    LOW_PASS = "low_pass",
-    BAND_PASS = "band_pass"
+    NO_DC = cpp_module.FilterType.kNoDC
+    LOW_PASS = cpp_module.FilterType.kLowPass
+    BAND_PASS = cpp_module.FilterType.kBandPass
 
 
-@enum.unique
 class Corrections(enum.Enum):
-    NO_CORRECTION = "no_correction",
-    ITERATIVE = "iterative",
-    CBC = "cbc"
+    NO_CORRECTION = cpp_module.CorrectionType.kNoCorrection
+    ITERATIVE = cpp_module.CorrectionType.kMedianCorrection
+    CBC = cpp_module.CorrectionType.kCorrelationBasedCorrection
 
 
 class PIVConfig:
     def __init__(self, config_name: str):
         self.config_name = config_name
 
-        self.image_parameters = self.ImageParameters()
-        self.filter_parameters = self.FilterParameters()
-        self.correction_parameters = self.VectorCorrectionParameters()
-        self.interpolation_parameters = self.InterpolationParameters()
+        self.config = cpp_module.PIVParameters()
 
-        self._cpp_bridge = cpp_module.PIVParametersCPP()
+        self.image_parameters = self.config.image_parameters
+        self.filter_parameters = self.config.filter_parameters
+        self.correction_parameters = self.config.correction_parameters
+        self.interpolation_parameters = self.config.interpolation_parameters
 
     def load_from_toml(self, path_to_toml: str) -> None:
         ...
@@ -72,30 +69,3 @@ class PIVConfig:
                 "interpolation_type": self.interpolation_parameters.interpolation_type.value,
             }
         }
-
-    def _get_parameters(self):
-        self.save_to_toml()
-        self._cpp_bridge.read_from_toml(self.config_name)
-
-        return self._cpp_bridge
-
-    class ImageParameters:
-        def __init__(self):
-            self.width = 0
-            self.height = 0
-            self.window_size = 0
-            self.overlap = 0
-
-    class InterpolationParameters:
-        def __init__(self):
-            self.interpolation_type = Interpolations.GAUSS
-
-    class FilterParameters:
-        def __init__(self):
-            self.filter_type = Filters.NO_DC
-            self.filter_parameter = 0
-
-    class VectorCorrectionParameters:
-        def __init__(self):
-            self.correction_type = Corrections.NO_CORRECTION
-            self.correction_parameter = 0

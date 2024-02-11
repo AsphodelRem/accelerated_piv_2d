@@ -2,6 +2,3 @@
 	path = extern/pybind11
 	url = ../../pybind/pybind11
 	branch = stable
-[submodule "extern/tomlplusplus"]
-	path = extern/tomlplusplus
-	url = https://github.com/marzer/tomlplusplus.git

@@ -3,7 +3,7 @@
 #include <cuComplex.h>
 #include <cufft.h>
 
-#include <parameters.cuh>
+#include <core/parameters.cuh>
 #include <utils/device_smart_pointer.hpp>
 
 __global__ static

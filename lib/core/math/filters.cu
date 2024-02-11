@@ -1,4 +1,4 @@
-#include <math/filters.cuh>
+#include <core/math/filters.cuh>
 
 constexpr unsigned int kBlockSize = 32;
 
@@ -99,7 +99,7 @@ void DoSpectrumFiltering(cuComplex *spectrum, const PIVParameters& parameters)
 
 Filter::Filter(PIVParameters &parameters) : parameters_(parameters) {}
 
-void Filter::filter(SharedPtrGPU<cuComplex> &input)
+void Filter::filter(const SharedPtrGPU<cuComplex> &input)
 {
     DoSpectrumFiltering(input.get(), parameters_);
 }

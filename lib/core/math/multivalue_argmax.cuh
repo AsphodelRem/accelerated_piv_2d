@@ -5,19 +5,20 @@
 #include <cub/util_type.cuh>
 #include <cub/device/device_segmented_reduce.cuh>
 
-#include <parameters.cuh>
-#include <device_smart_pointer.hpp>
+#include <core/math/math_operation.hpp>
+#include <core/parameters.cuh>
+#include <utils/device_smart_pointer.hpp>
 #include <utils/errors_checking.cuh>
 
-class MultiArgMaxSearch
+class MultiArgMaxSearch final : public IOperation<cub::KeyValuePair<int, float>>
 {
 public:
     explicit MultiArgMaxSearch(const PIVParameters &parameters);
-    ~MultiArgMaxSearch() = default;
+    ~MultiArgMaxSearch() override = default;
 
     void GetMaxForAllWindows(const SharedPtrGPU<float> &input);
 
-    SharedPtrGPU<cub::KeyValuePair<int, float>> result;
+    // SharedPtrGPU<cub::KeyValuePair<int, float>> result;
 
 private:
     std::shared_ptr<int[]> offsets_;

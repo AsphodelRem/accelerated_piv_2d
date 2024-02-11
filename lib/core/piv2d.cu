@@ -1,4 +1,11 @@
-#include <piv2d.cuh>
+#include <core/piv2d.cuh>
+
+#include <cub/cub.cuh>
+
+#include <core/math/interpolations.cuh>
+#include <core/math/fft_handlers.cuh>
+#include <core/math/filters.cuh>
+#include <core/math/multivalue_argmax.cuh>
 
 PIVDataContainer::PIVDataContainer(PIVParameters &parameters) : parameters_(parameters)
 {
@@ -79,13 +86,13 @@ PIVDataContainer StartPIV2D(ImageContainer &container, PIVParameters &parameters
 
         fourier_image_1 *= fourier_image_2;
 
-        filter.filter(fourier_image_1.result);
+        filter.filter(fourier_image_1.GetResult());
 
-        correlation_function.ComputeBackwardFFT(fourier_image_1.result);
+        correlation_function.ComputeBackwardFFT(fourier_image_1.GetResult());
 
-        multi_max_search.GetMaxForAllWindows(correlation_function.result);
+        multi_max_search.GetMaxForAllWindows(correlation_function.GetResult());
 
-        interpolation.Interpolate(correlation_function.result, multi_max_search.result);
+        interpolation.Interpolate(correlation_function.result, multi_max_search.GetResult());
 
         data.StoreData(interpolation.result);
     }

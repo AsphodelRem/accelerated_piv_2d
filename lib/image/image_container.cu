@@ -1,8 +1,8 @@
-#include <image_container.cuh>
+#include <image/image_container.cuh>
 
 IDataContainer::IDataContainer(const PIVParameters& parameters) : parameters_(parameters) {};
 
-ImageContainer::ImageContainer(ListOfFiles &file_names,
+ImageContainer::ImageContainer(ImagesQueue &file_names,
     const PIVParameters &parameters)
     : IDataContainer(parameters)
     , file_names_(file_names)
@@ -25,7 +25,6 @@ bool ImageContainer::IsEmpty() const
     return this->file_names_.empty();
 }
 
-// template <typename T, typename T2>
 PreprocessedImagesPair<unsigned char, float> &ImageContainer::GetImages()
 {
     if (!this->IsEmpty())

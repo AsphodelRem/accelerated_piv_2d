@@ -2,17 +2,16 @@
 
 #include <cuComplex.h>
 
-#include <parameters.cuh>
+#include <core/math/math_operation.hpp>
+#include <core/parameters.cuh>
 #include <utils/device_smart_pointer.hpp>
 
-class Filter
+class Filter final : public IOperation<float>
 {
 public:
     explicit Filter(PIVParameters &parameters);
 
-    void filter(SharedPtrGPU<cuComplex> &input);
-
-    // SharedPtrGPU<float> result;
+    void filter(const SharedPtrGPU<cuComplex> &input);
 
 private:
     PIVParameters &parameters_;

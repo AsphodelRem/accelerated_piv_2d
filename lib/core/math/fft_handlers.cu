@@ -1,7 +1,8 @@
-#include <math/fft_handlers.cuh>
-#include <math/additional.cuh>
+#include <core/math/fft_handlers.cuh>
+#include <core/math/additional.cuh>
 
-FFTHandler::FFTHandler(const PIVParameters &parameters) :parameters_(parameters)
+template <typename T>
+FFTHandler<T>::FFTHandler(const PIVParameters &parameters) : parameters_(parameters)
 {
   const int segment_size = parameters.image_parameters.window_size;
 

@@ -5,10 +5,13 @@
 #include <cuComplex.h>
 #include <cufft.h>
 
-#include <parameters.cuh>
+#include <core/parameters.cuh>
 #include <utils/device_smart_pointer.hpp>
 
-class FFTHandler
+#include "math_operation.hpp"
+
+template <typename T>
+class FFTHandler : public IOperation<T>
 {
 public:
     explicit FFTHandler(const PIVParameters &parameters);
@@ -26,7 +29,7 @@ protected:
     const PIVParameters &parameters_;
 };
 
-class ForwardFFTHandler : public FFTHandler
+class ForwardFFTHandler : public FFTHandler<cuComplex>
 {
 public:
     explicit ForwardFFTHandler(const PIVParameters &parameters);
@@ -35,20 +38,16 @@ public:
 
     void ComputeForwardFFT(const SharedPtrGPU<float> &image, bool to_conjugate = false);
 
-    SharedPtrGPU<cufftComplex> result;
-
 private:
     cufftHandle cufft_handler_;
 };
 
-class BackwardFFTHandler : public FFTHandler
+class BackwardFFTHandler : public FFTHandler<float>
 {
 public:
     explicit BackwardFFTHandler(const PIVParameters &parameters);
 
     void ComputeBackwardFFT(const SharedPtrGPU<cuComplex> &image);
-
-    SharedPtrGPU<float> result;
 
 private:
     SharedPtrGPU<float> buffer_;

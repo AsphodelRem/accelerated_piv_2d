@@ -1,5 +1,8 @@
 #pragma once
 
+#include <iostream>
+#include <string>
+
 enum class InterpolationType
 {
     kGaussian = 0,
@@ -67,4 +70,7 @@ struct PIVParameters
     FilterParameters filter_parameters;
     VectorCorrectionsParameters correction_parameters;
     InterpolationParameters interpolation_parameters;
+
+    void ReadFromTOML(std::string& file) {
+    }
 };

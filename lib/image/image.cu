@@ -1,2 +1,1 @@
-#include <image.cuh>
-
+#include <image/image.cuh>

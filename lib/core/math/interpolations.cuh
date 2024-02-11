@@ -2,11 +2,13 @@
 
 #include <cub/util_type.cuh>
 
-#include <math/point.cuh>
+#include <core/math/point.cuh>
 #include <utils/device_smart_pointer.hpp>
-#include <parameters.cuh>
+#include <core/parameters.cuh>
 
-class Interpolation
+#include "math_operation.hpp"
+
+class Interpolation final : public IOperation<Point2D<float>>
 {
 public:
     explicit Interpolation(PIVParameters &parameters);
@@ -14,7 +16,7 @@ public:
     void Interpolate(const SharedPtrGPU<float> &correlation_function,
         const SharedPtrGPU<cub::KeyValuePair<int, float>> &input);
 
-    SharedPtrGPU<Point2D<float>> result;
+    // SharedPtrGPU<Point2D<float>> result;
 
 private:
     PIVParameters &parameters_;

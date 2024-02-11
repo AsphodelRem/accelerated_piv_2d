@@ -1,4 +1,4 @@
-#include <math/interpolations.cuh>
+#include <core/math/interpolations.cuh>
 
 constexpr float epsilon = 1.0e-8;
 constexpr unsigned int kBlockSize = 32;

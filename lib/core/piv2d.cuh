@@ -5,15 +5,12 @@
 #include <cufft.h>
 #include <cuComplex.h>
 
-#include <cub/cub.cuh>
+#include <cub/util_type.cuh>
 
 #include <utils/device_smart_pointer.hpp>
-#include <image_container.cuh>
-#include <parameters.cuh>
-#include <math/multivalue_argmax.cuh>
-#include <math/interpolations.cuh>
-#include <math/fft_handlers.cuh>
-#include <math/filters.cuh>
+#include <image/image_container.cuh>
+#include <core/parameters.cuh>
+#include <core/math/point.cuh>
 
 class PIVDataContainer
 {
@@ -34,3 +31,4 @@ private:
 };
 
 PIVDataContainer StartPIV2D(ImageContainer &container, PIVParameters &parameters);
+

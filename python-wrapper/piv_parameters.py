@@ -1,6 +1,8 @@
 import enum
 import toml
 
+import accelerated_piv_cpp as cpp_module
+
 
 @enum.unique
 class Interpolations(enum.Enum):
@@ -23,19 +25,24 @@ class Corrections(enum.Enum):
     CBC = "cbc"
 
 
-class PIVParameters:
-    def __init__(self):
+class PIVConfig:
+    def __init__(self, config_name: str):
+        self.config_name = config_name
+
         self.image_parameters = self.ImageParameters()
         self.filter_parameters = self.FilterParameters()
         self.correction_parameters = self.VectorCorrectionParameters()
         self.interpolation_parameters = self.InterpolationParameters()
 
+        self._cpp_bridge = cpp_module.PIVParametersCPP()
+
     def load_from_toml(self, path_to_toml: str) -> None:
         ...
 
-    def save_to_toml(self, path_to_toml: str) -> None:
+    def save_to_toml(self, path_to_toml: str = None) -> None:
         data = self._get_dict()
-        with open(path_to_toml, "w") as toml_file:
+        file = self.config_name if path_to_toml is None else path_to_toml
+        with open(file, "w") as toml_file:
             toml.dump(data, toml_file)
 
     def _get_dict(self) -> dict:
@@ -65,6 +72,12 @@ class PIVParameters:
                 "interpolation_type": self.interpolation_parameters.interpolation_type.value,
             }
         }
+
+    def _get_parameters(self):
+        self.save_to_toml()
+        self._cpp_bridge.read_from_toml(self.config_name)
+
+        return self._cpp_bridge
 
     class ImageParameters:
         def __init__(self):

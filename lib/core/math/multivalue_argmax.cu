@@ -1,4 +1,4 @@
-#include <math/multivalue_argmax.cuh>
+#include <core/math/multivalue_argmax.cuh>
 
 MultiArgMaxSearch::MultiArgMaxSearch(const PIVParameters &parameters)
 {

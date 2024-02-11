@@ -1,5 +1,7 @@
 #pragma once
 
+#define NO_IMPLEMENTED
+
 #define CUDA_CHECK_ERROR(func)                                 \
     do                                                         \
     {                                                          \

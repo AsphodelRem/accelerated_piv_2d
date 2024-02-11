@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iostream>
 #include <string>
 
 enum class InterpolationType
@@ -31,17 +30,17 @@ struct ImageParameters
         window_size,
         overlap;
 
-    unsigned int GetNumberOfWindows() const
+    [[nodiscard]] unsigned int GetNumberOfWindows() const
     {
         return (width / window_size) * (height / window_size);
     }
 
-    std::pair<int, int> GetGridSize() const
+    [[nodiscard]] std::pair<int, int> GetGridSize() const
     {
         return {(height / window_size), (width / window_size)};
     }
 
-    std::pair<int, int> GetSpectrumSize() const {
+    [[nodiscard]] std::pair<int, int> GetSpectrumSize() const {
         return { height - (height % window_size),
             (width - (width % window_size)) / window_size * (window_size / 2 + 1) };
     }
@@ -70,7 +69,4 @@ struct PIVParameters
     FilterParameters filter_parameters;
     VectorCorrectionsParameters correction_parameters;
     InterpolationParameters interpolation_parameters;
-
-    void ReadFromTOML(std::string& file) {
-    }
 };

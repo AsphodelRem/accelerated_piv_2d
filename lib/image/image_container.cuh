@@ -1,79 +1,46 @@
 #pragma once
 
+#include <optional>
 #include <queue>
 #include <type_traits>
 
-#include <image/image.cuh>
 #include <core/parameters.cuh>
+#include <image/image.cuh>
 
-// A wrapper over std::queue in order to be able to change it in python code
-class ImagesQueue
-{
+class IDataContainer {
 public:
-    ImagesQueue() = default;
+  explicit IDataContainer(const PIVParameters &parameters);
 
-    void push(const std::string& item)
-    {
-        data_.push(item);
-    }
+  virtual ~IDataContainer() = default;
 
-    void pop()
-    {
-        data_.pop();
-    }
-
-    std::string& front()
-    {
-        return data_.front();
-    }
-
-    [[nodiscard]] bool empty() const
-    {
-        return data_.empty();
-    }
-
-    [[nodiscard]] size_t size() const
-    {
-        return data_.size();
-    }
-
-private:
-    std::queue<std::string> data_;
-};
-
-class IDataContainer
-{
-public:
-    IDataContainer() = default;
-    explicit IDataContainer(const PIVParameters& parameters);
-
-    virtual ~IDataContainer() = default;
-
-    virtual PreprocessedImagesPair<unsigned char, float>& GetImages() = 0;
+  virtual std::optional<
+      std::reference_wrapper<PreprocessedImagesPair<unsigned char, float>>>
+  GetImages() = 0;
 
 protected:
-    const PIVParameters& parameters_;
+  const PIVParameters &parameters_;
 };
 
-class ImageContainer : IDataContainer
-{
+class ImageContainer final : public IDataContainer {
 public:
-    using ListOfFiles = std::queue<std::string>;
+  using ListOfFiles = std::queue<std::string>;
 
-    ImageContainer(ImagesQueue &file_names, const PIVParameters &parameters);
-    ~ImageContainer() override = default;
+  ImageContainer(std::queue<std::string> &file_names,
+                 const PIVParameters &parameters);
 
-    PreprocessedImagesPair<unsigned char, float>& GetImages() override;
+  ~ImageContainer() override = default;
 
-    bool IsEmpty() const;
+  std::optional<
+      std::reference_wrapper<PreprocessedImagesPair<unsigned char, float>>>
+  GetImages() override;
 
 private:
-    ImagePair<unsigned char> input_images_;
-    PreprocessedImagesPair<unsigned char, float> output_images_;
+  ImagePair<unsigned char> input_images_;
+  PreprocessedImagesPair<unsigned char, float> output_images_;
 
-    ImagesQueue& file_names_;
+  std::queue<std::string> &file_names_;
 
-    SharedPtrGPU<float> buffer_1_, buffer_2_;
+  SharedPtrGPU<float> buffer_1_, buffer_2_;
 };
 
 // class VideoContainer : IDataContainer
@@ -84,6 +51,3 @@ private:
 //
 //     PreprocessedImagesPair<unsigned char, float>& GetImages() override;
 // };
-
-
-

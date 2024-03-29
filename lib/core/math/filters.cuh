@@ -6,13 +6,12 @@
 #include <core/parameters.cuh>
 #include <utils/device_smart_pointer.hpp>
 
-class Filter final : public IOperation<float>
-{
+class Filter final : public IOperation<float> {
 public:
-    explicit Filter(PIVParameters &parameters);
+  explicit Filter(PIVParameters &parameters);
 
-    void filter(const SharedPtrGPU<cuComplex> &input);
+  void filter(const SharedPtrGPU<cuComplex> &input);
 
 private:
-    PIVParameters &parameters_;
+  PIVParameters &parameters_;
 };

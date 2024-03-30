@@ -1,5 +1,6 @@
 #include <core/math/additional.cuh>
 #include <core/math/fft_handlers.cuh>
+#include <utils/errors_checking.cuh>
 
 template <typename T>
 FFTHandler<T>::FFTHandler(const PIVParameters &parameters)
@@ -31,7 +32,7 @@ ForwardFFTHandler::ForwardFFTHandler(const PIVParameters &parameters)
 
 void ForwardFFTHandler::ComputeForwardFFT(const SharedPtrGPU<float> &image,
                                           bool to_conjugate) {
-  cufftExecR2C(this->cufft_handler_, image.get(), this->result.get());
+  CUDA_CHECK_ERROR(cufftExecR2C(this->cufft_handler_, image.get(), this->result.get()));
 
   if (to_conjugate) {
     Conjugate(this->result.get(), this->parameters_.image_parameters.GetHeight(),
@@ -63,7 +64,7 @@ BackwardFFTHandler::BackwardFFTHandler(const PIVParameters &parameters)
 
 void BackwardFFTHandler::ComputeBackwardFFT(
     const SharedPtrGPU<cuComplex> &image) {
-  cufftExecC2R(this->cufft_handler_, image.get(), this->buffer_.get());
+  CUDA_CHECK_ERROR(cufftExecC2R(this->cufft_handler_, image.get(), this->buffer_.get()));
 
   ShiftSpectrum(this->buffer_.get(), this->result.get(),
                 this->parameters_.image_parameters.GetWindowSize(),

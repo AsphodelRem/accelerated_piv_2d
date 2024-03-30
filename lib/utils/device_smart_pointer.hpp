@@ -19,7 +19,8 @@ public:
 
     if (status != cudaSuccess) {
       throw std::runtime_error("Unable to allocate " +
-                               std::to_string(this->size_) + " on device");
+                               std::to_string(this->size_) + " bytes on device. cudaMalloc status: " + 
+                               std::to_string(status));
     }
 
     this->Increment();

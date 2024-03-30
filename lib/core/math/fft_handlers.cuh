@@ -5,7 +5,7 @@
 #include <cuComplex.h>
 #include <cufft.h>
 
-#include <core/parameters.cuh>
+#include <core/parameters.hpp>
 #include <utils/device_smart_pointer.hpp>
 
 #include "math_operation.hpp"

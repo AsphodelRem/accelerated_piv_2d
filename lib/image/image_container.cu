@@ -1,11 +1,12 @@
 #include <functional>
-#include <image/image_container.cuh>
 #include <optional>
 
-IDataContainer::IDataContainer(const PIVParameters &parameters)
-    : parameters_(parameters){};
+#include <image/image_container.cuh>
 
-ImageContainer::ImageContainer(std::queue<std::string> &file_names,
+IDataContainer::IDataContainer(const PIVParameters &parameters)
+    : parameters_(parameters) {};
+
+ImageContainer::ImageContainer(std::deque<std::string> &file_names,
                                const PIVParameters &parameters)
     : IDataContainer(parameters)
     , file_names_(file_names)
@@ -27,10 +28,10 @@ std::optional<std::reference_wrapper<PreprocessedImagesPair<unsigned char, float
 ImageContainer::GetImages() {
   if (!this->file_names_.empty()) {
     const std::string file_1_name = this->file_names_.front();
-    this->file_names_.pop();
+    this->file_names_.pop_front();
 
     const std::string file_2_name = this->file_names_.front();
-    this->file_names_.pop();
+    this->file_names_.pop_front();
 
     this->input_images_.UploadNewImages(file_1_name, file_2_name);
     this->output_images_.UploadNewImages(this->input_images_);

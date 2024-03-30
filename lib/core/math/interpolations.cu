@@ -109,19 +109,19 @@ SubpixelInterpolation_kernel(const float *correlation_function,
 Interpolation::Interpolation(PIVParameters &parameters)
     : parameters_(parameters) {
   this->result = make_shared_gpu<Point2D<float>>(
-      parameters.image_parameters.GetNumberOfWindows());
+      parameters.GetNumberOfWindows());
 }
 
 void Interpolation::Interpolate(
     const SharedPtrGPU<float> &correlation_function,
     const SharedPtrGPU<cub::KeyValuePair<int, float>> &input) {
-  auto length = parameters_.image_parameters.GetNumberOfWindows();
-  auto window_size = parameters_.image_parameters.window_size;
+  auto length = parameters_.GetNumberOfWindows();
+  auto window_size = parameters_.image_parameters.GetWindowSize();
 
   dim3 grid_size = {(length + kBlockSize - 1) / kBlockSize};
   dim3 threads_per_block = {kBlockSize};
 
   SubpixelInterpolation_kernel<<<grid_size, threads_per_block>>>(
       correlation_function.get(), input.get(), this->result.get(), length,
-      window_size, parameters_.interpolation_parameters.interpolation_type);
+      window_size, parameters_.interpolation_parameters.GetInterpolationType());
 }

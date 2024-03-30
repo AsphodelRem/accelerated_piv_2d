@@ -39,10 +39,10 @@ PreprocessImage_kernel(const uchar *dev_image, float *dev_sliced_image,
 void SplitImageIntoWindows(const SharedPtrGPU<unsigned char> &gray_image,
                            const SharedPtrGPU<float> &sliced_image,
                            const PIVParameters &parameters) {
-  const unsigned window_size = parameters.image_parameters.window_size;
-  const unsigned grid_size_x = parameters.image_parameters.width / window_size;
-  const unsigned grid_size_y = parameters.image_parameters.height / window_size;
-  const unsigned image_width = parameters.image_parameters.width;
+  const unsigned window_size = parameters.image_parameters.GetWindowSize();
+  const unsigned grid_size_x = parameters.image_parameters.GetWidth() / window_size;
+  const unsigned grid_size_y = parameters.image_parameters.GetHeight() / window_size;
+  const unsigned image_width = parameters.image_parameters.GetWidth();
 
   dim3 grid_size = {window_size / 16, window_size / 16, grid_size_y};
   dim3 thread_per_block = {16, 16};
@@ -103,7 +103,7 @@ void NormalizeImage(SharedPtrGPU<float> &input,
                     const SharedPtrGPU<double> &var,
                     const PIVParameters &parameters) {
   const unsigned length =
-      parameters.image_parameters.height * parameters.image_parameters.width;
+      parameters.image_parameters.GetHeight() * parameters.image_parameters.GetWidth();
 
   int threads_per_block = 1024;
   int grid_size = (length + threads_per_block - 1) / threads_per_block;

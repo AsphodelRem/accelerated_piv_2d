@@ -4,7 +4,7 @@
 #include <queue>
 #include <type_traits>
 
-#include <core/parameters.cuh>
+#include <core/parameters.hpp>
 #include <image/image.cuh>
 
 class IDataContainer {
@@ -23,9 +23,9 @@ protected:
 
 class ImageContainer final : public IDataContainer {
 public:
-  using ListOfFiles = std::queue<std::string>;
+  using ListOfFiles = std::deque<std::string>;
 
-  ImageContainer(std::queue<std::string> &file_names,
+  ImageContainer(std::deque<std::string> &file_names,
                  const PIVParameters &parameters);
 
   ~ImageContainer() override = default;
@@ -38,11 +38,12 @@ private:
   ImagePair<unsigned char> input_images_;
   PreprocessedImagesPair<unsigned char, float> output_images_;
 
-  std::queue<std::string> &file_names_;
+  std::deque<std::string> &file_names_;
 
   SharedPtrGPU<float> buffer_1_, buffer_2_;
 };
 
+// TODO: 
 // class VideoContainer : IDataContainer
 // {
 // public:

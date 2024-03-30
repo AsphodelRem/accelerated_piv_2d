@@ -3,7 +3,7 @@
 #include <cub/util_type.cuh>
 
 #include <core/math/point.cuh>
-#include <core/parameters.cuh>
+#include <core/parameters.hpp>
 #include <utils/device_smart_pointer.hpp>
 
 #include "math_operation.hpp"

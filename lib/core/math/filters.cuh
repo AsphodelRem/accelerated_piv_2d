@@ -3,7 +3,7 @@
 #include <cuComplex.h>
 
 #include <core/math/math_operation.hpp>
-#include <core/parameters.cuh>
+#include <core/parameters.hpp>
 #include <utils/device_smart_pointer.hpp>
 
 class Filter final : public IOperation<float> {

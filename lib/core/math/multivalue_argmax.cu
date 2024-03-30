@@ -1,7 +1,7 @@
 #include <core/math/multivalue_argmax.cuh>
 
 MultiArgMaxSearch::MultiArgMaxSearch(const PIVParameters &parameters) {
-  this->number_of_windows_ = parameters.image_parameters.GetNumberOfWindows();
+  this->number_of_windows_ = parameters.GetNumberOfWindows();
   size_t size_of_temp_buffer = 0;
 
   this->offsets_ = std::make_shared<int[]>(this->number_of_windows_ + 1);
@@ -17,8 +17,8 @@ MultiArgMaxSearch::MultiArgMaxSearch(const PIVParameters &parameters) {
   this->buffer_ = make_shared_gpu<char>(size_of_temp_buffer);
 
   for (int i = 0; i < this->number_of_windows_ + 1; i++) {
-    this->offsets_[i] = parameters.image_parameters.window_size *
-                        parameters.image_parameters.window_size * i;
+    this->offsets_[i] = parameters.image_parameters.GetWindowSize() *
+                        parameters.image_parameters.GetWindowSize() * i;
   }
 
   this->dev_cub_offsets_ =

@@ -9,7 +9,7 @@
 
 PIVDataContainer::PIVDataContainer(PIVParameters &parameters)
     : parameters_(parameters) {
-  auto number_of_window = parameters.image_parameters.GetNumberOfWindows();
+  auto number_of_window = parameters.GetNumberOfWindows();
 
   this->data = std::make_shared<Point2D<float>[]>(number_of_window);
   this->preprocessed_data_ = make_shared_gpu<Point2D<float>>(number_of_window);
@@ -45,14 +45,14 @@ __global__ void FindMovements_kernel(Point2D<float> *interpolated_coordinates,
 void FindMovements(SharedPtrGPU<Point2D<float>> &input,
                    SharedPtrGPU<Point2D<float>> &output,
                    PIVParameters &parameters) {
-  auto length = parameters.image_parameters.GetNumberOfWindows();
+  auto length = parameters.GetNumberOfWindows();
 
   dim3 grid_size = {(length + 127) / 128};
   dim3 threads_per_block = {128};
 
   FindMovements_kernel<<<grid_size, threads_per_block>>>(
       input.get(), output.get(), length, 1, 1,
-      parameters.image_parameters.window_size);
+      parameters.image_parameters.GetWindowSize());
 }
 
 void PIVDataContainer::StoreData(SharedPtrGPU<Point2D<float>> &data) {

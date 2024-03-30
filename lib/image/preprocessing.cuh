@@ -2,7 +2,7 @@
 
 #include <opencv2/core.hpp>
 
-#include <core/parameters.cuh>
+#include <core/parameters.hpp>
 #include <utils/device_smart_pointer.hpp>
 
 void SplitImageIntoWindows(const SharedPtrGPU<unsigned char> &gray_image,

@@ -6,7 +6,7 @@
 #include <cub/util_type.cuh>
 
 #include <core/math/math_operation.hpp>
-#include <core/parameters.cuh>
+#include <core/parameters.hpp>
 #include <utils/device_smart_pointer.hpp>
 #include <utils/errors_checking.cuh>
 

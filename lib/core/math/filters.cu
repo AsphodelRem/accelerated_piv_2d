@@ -65,13 +65,13 @@ void BandPassFilter(cuComplex *spectrum, unsigned int height,
 }
 
 void DoSpectrumFiltering(cuComplex *spectrum, const PIVParameters &parameters) {
-  auto [height, width] = parameters.image_parameters.GetSpectrumSize();
+  auto [height, width] = parameters.GetSpectrumSize();
   const unsigned int spectrum_height = height;
   const unsigned int spectrum_width = width;
 
-  auto filter_parameter = parameters.filter_parameters.filter_parameter;
+  float filter_parameter = parameters.filter_parameters.GetFilterParameter();
 
-  switch (parameters.filter_parameters.filter_type) {
+  switch (parameters.filter_parameters.GetFilterType()) {
   case FilterType::kLowPass:
     LowPassFilter(spectrum, spectrum_height, spectrum_width, filter_parameter);
     break;

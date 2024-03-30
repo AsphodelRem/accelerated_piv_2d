@@ -9,7 +9,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
-#include <core/parameters.cuh>
+#include <core/parameters.hpp>
 #include <image/preprocessing.cuh>
 #include <utils/device_smart_pointer.hpp>
 
@@ -36,6 +36,7 @@ private:
 template <typename T, typename T2> class PreprocessedImagesPair {
 public:
   PreprocessedImagesPair() = default;
+  
   PreprocessedImagesPair(ImagePair<T> &input_images,
                          const PIVParameters &parameters);
 
@@ -154,8 +155,8 @@ PreprocessedImagesPair<T, T2>::PreprocessedImagesPair(
   this->image_statictic_.dev_mean = make_shared_gpu<double>(1);
   this->image_statictic_.dev_var = make_shared_gpu<double>(1);
 
-  this->image_statictic_.roi_size.height = parameters.image_parameters.height;
-  this->image_statictic_.roi_size.width = parameters.image_parameters.width;
+  this->image_statictic_.roi_size.height = parameters.image_parameters.GetHeight();
+  this->image_statictic_.roi_size.width = parameters.image_parameters.GetWidth();
 
   nppiMeanStdDevGetBufferHostSize_32f_C1R(
       this->image_statictic_.roi_size, &this->image_statictic_.size_of_buffer_);
@@ -178,7 +179,7 @@ PreprocessedImagesPair<T, T2>::UploadNewImages(ImagePair<T> &new_images) {
                         this->parameters_);
 
   const int image_width_in_bytes =
-      parameters_.image_parameters.width * sizeof(float);
+      parameters_.image_parameters.GetWidth() * sizeof(float);
 
   // Getting mean and variance for the first image and normalizing it
   nppiMean_StdDev_32f_C1R(this->output_first_image_.get(), image_width_in_bytes,

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <opencv2/core/mat.hpp>
 #include <optional>
 #include <queue>
 #include <type_traits>
@@ -23,8 +24,6 @@ protected:
 
 class ImageContainer final : public IDataContainer {
 public:
-  using ListOfFiles = std::deque<std::string>;
-
   ImageContainer(std::deque<std::string> &file_names,
                  const PIVParameters &parameters);
 
@@ -38,17 +37,23 @@ private:
   ImagePair<unsigned char> input_images_;
   PreprocessedImagesPair<unsigned char, float> output_images_;
 
-  std::deque<std::string> &file_names_;
-
-  SharedPtrGPU<float> buffer_1_, buffer_2_;
+  std::deque<std::string> file_names_;
 };
 
-// TODO: 
-// class VideoContainer : IDataContainer
-// {
-// public:
-//     explicit VideoContainer(std::string file_name);
-//     ~VideoContainer() override;
-//
-//     PreprocessedImagesPair<unsigned char, float>& GetImages() override;
-// };
+class VideoContainer final : public IDataContainer
+{
+public:
+    VideoContainer(std::string path_to_video_file, PIVParameters& parameters);
+    ~VideoContainer() override = default;
+
+  std::optional<
+      std::reference_wrapper<PreprocessedImagesPair<unsigned char, float>>>
+  GetImages() override;
+
+private:
+  cv::VideoCapture video_;
+  cv::Mat buffer_1, buffer_2;
+
+  ImagePair<unsigned char> input_frames_;
+  PreprocessedImagesPair<unsigned char, float> output_frames_;
+};

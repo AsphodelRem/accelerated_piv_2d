@@ -1,10 +1,12 @@
 #include <functional>
+#include <opencv2/videoio.hpp>
 #include <optional>
 
 #include <image/image_container.cuh>
+#include <stdexcept>
 
 IDataContainer::IDataContainer(const PIVParameters &parameters)
-    : parameters_(parameters) {};
+    : parameters_(parameters){};
 
 ImageContainer::ImageContainer(std::deque<std::string> &file_names,
                                const PIVParameters &parameters)
@@ -39,5 +41,26 @@ ImageContainer::GetImages() {
     return {this->output_images_};
   }
 
+  return std::nullopt;
+}
+
+VideoContainer::VideoContainer(std::string path_to_video_file,
+                               PIVParameters &parameters)
+    : IDataContainer(parameters) {
+  this->video_ = cv::VideoCapture(path_to_video_file);
+  if (!this->video_.isOpened()) {
+    throw std::runtime_error("Unable to open " + path_to_video_file + " file!");
+  }
+}
+
+std::optional<std::reference_wrapper<PreprocessedImagesPair<unsigned char, float>>>
+VideoContainer::GetImages() {
+  if (video_.read(buffer_1) && video_.read(buffer_2)) {
+    input_frames_.UploadNewImages(buffer_1, buffer_2);
+    output_frames_.UploadNewImages(input_frames_);
+
+    return { this->output_frames_ };
+  }
+  
   return std::nullopt;
 }

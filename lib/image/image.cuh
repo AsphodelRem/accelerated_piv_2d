@@ -17,6 +17,7 @@ template <typename T> class ImagePair {
 public:
   ImagePair() = default;
   ImagePair(const std::string &image_1, const std::string &image_2);
+  ImagePair(const PIVParameters& parameters);
 
   ImagePair &UploadNewImages(const std::string &image_1,
                              const std::string &image_2);
@@ -36,9 +37,7 @@ private:
 template <typename T, typename T2> class PreprocessedImagesPair {
 public:
   PreprocessedImagesPair() = default;
-  
-  PreprocessedImagesPair(ImagePair<T> &input_images,
-                         const PIVParameters &parameters);
+  PreprocessedImagesPair(const PIVParameters &parameters);
 
   PreprocessedImagesPair &UploadNewImages(ImagePair<T> &new_images);
 
@@ -62,37 +61,25 @@ private:
 };
 
 template <typename T>
-ImagePair<T>::ImagePair(const std::string &image_1,
-                        const std::string &image_2) {
-  const cv::Mat image_a = cv::imread(image_1);
-  const cv::Mat image_b = cv::imread(image_2);
+ImagePair<T>::ImagePair(const PIVParameters& parameters) {
+  auto size = parameters.image_parameters.GetHeight() * 
+      parameters.image_parameters.GetWidth() * parameters.image_parameters.GetChannels();
 
-  if (image_a.cols != image_b.cols || image_a.rows != image_b.rows) {
-    throw std::runtime_error("Images should have same shape");
-  }
-
-  unsigned int image_width = image_a.cols, image_height = image_b.rows;
-  unsigned int channels = image_a.channels();
-  unsigned long long int size = image_width * image_height * channels;
+  auto grayscaled_image_size = parameters.image_parameters.GetHeight() * 
+      parameters.image_parameters.GetWidth();
 
   // Creating buffer for storing rgb image
   this->buffer_1_ =
-      make_shared_gpu<unsigned char>(size).UploadHostData(image_a.data, size);
+      make_shared_gpu<unsigned char>(size);
 
   this->buffer_2_ =
-      make_shared_gpu<unsigned char>(size).UploadHostData(image_b.data, size);
+      make_shared_gpu<unsigned char>(size);
 
-  this->image_a_ = make_shared_gpu<unsigned char>(image_width * image_height);
-  this->image_b_ = make_shared_gpu<unsigned char>(image_width * image_height);
-
-  if (channels != 1) {
-    MakeGrayScale(this->buffer_1_, this->image_a_, image_width, image_height,
-                  channels);
-
-    MakeGrayScale(this->buffer_2_, this->image_b_, image_width, image_height,
-                  channels);
-  }
+  // Creating buffer for storing gray scale image
+  this->image_a_ = make_shared_gpu<unsigned char>(grayscaled_image_size);
+  this->image_b_ = make_shared_gpu<unsigned char>(grayscaled_image_size);    
 }
+
 template <typename T>
 ImagePair<T> &ImagePair<T>::UploadNewImages(const std::string &image_1,
                                             const std::string &image_2) {
@@ -143,14 +130,14 @@ template <typename T> SharedPtrGPU<T> &ImagePair<T>::GetSecondImage() {
 }
 
 template <typename T, typename T2>
-PreprocessedImagesPair<T, T2>::PreprocessedImagesPair(
-    ImagePair<T> &input_images, const PIVParameters &parameters)
+PreprocessedImagesPair<T, T2>::PreprocessedImagesPair(const PIVParameters &parameters)
     : parameters_(parameters) {
-  this->output_first_image_ =
-      make_shared_gpu<T2>(input_images.GetFirstImage().size() / sizeof(T));
 
-  this->output_second_image_ =
-      make_shared_gpu<T2>(input_images.GetFirstImage().size() / sizeof(T));
+  auto image_size = parameters.image_parameters.GetHeight() *
+        parameters.image_parameters.GetWidth();
+
+  this->output_first_image_ = make_shared_gpu<T2>(image_size);
+  this->output_second_image_ = make_shared_gpu<T2>(image_size);
 
   this->image_statictic_.dev_mean = make_shared_gpu<double>(1);
   this->image_statictic_.dev_var = make_shared_gpu<double>(1);
@@ -163,8 +150,6 @@ PreprocessedImagesPair<T, T2>::PreprocessedImagesPair(
 
   this->image_statictic_.buffer_ =
       make_shared_gpu<Npp8u>(this->image_statictic_.size_of_buffer_);
-
-  this->UploadNewImages(input_images);
 }
 
 template <typename T, typename T2>

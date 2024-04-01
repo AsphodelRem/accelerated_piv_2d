@@ -98,8 +98,8 @@ public:
 
   PIVParameters(std::string& path_to_toml_config);
 
-  void LoadFromToml(std::string &path_to_toml);
-  void SaveToToml(std::string &path_to_toml);
+  void LoadFromToml(const std::string &path_to_toml);
+  void SaveToToml(const std::string &path_to_toml);
 
   [[nodiscard]] unsigned int GetNumberOfWindows() const;
 

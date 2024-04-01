@@ -2,14 +2,16 @@
 #include <extern/toml.hpp>
 #include <fstream>
 
-PIVParameters::PIVParameters(unsigned int width, unsigned int height,
-                             unsigned int window_size, unsigned int overlap,
-                             FilterType filter_type, float filter_parameter,
-                             InterpolationType interpolation_type,
-                             CorrectionType correction_type,
-                             int correction_parameter) {
+PIVParameters::PIVParameters(
+  unsigned int width, unsigned int height, unsigned int channels,
+  unsigned int window_size, unsigned int overlap,
+  FilterType filter_type, float filter_parameter,
+  InterpolationType interpolation_type,
+  CorrectionType correction_type,
+  int correction_parameter) {
 
-  this->filter_parameters.SetFilterParameter(filter_parameter)
+  this->filter_parameters
+      .SetFilterParameter(filter_parameter)
       .SetFilterType(filter_type);
 
   this->interpolation_parameters
@@ -19,8 +21,10 @@ PIVParameters::PIVParameters(unsigned int width, unsigned int height,
       .SetCorrectionParameter(correction_parameter)
       .SetCorrectionType(correction_type);
 
-  this->image_parameters.SetHeight(height)
+  this->image_parameters
+      .SetHeight(height)
       .SetWidth(width)
+      .SetChannels(channels)
       .SetWindowSize(window_size)
       .SetOverlap(overlap);
 }
@@ -147,6 +151,16 @@ ImageParameters &ImageParameters::SetOverlap(unsigned int overlap) {
   this->overlap_ = overlap;
   return *this;
 }
+
+ImageParameters &ImageParameters::SetChannels(unsigned int channels) {
+  if (channels <= 0) {
+    throw std::invalid_argument("Number of channels must be greater than 0");
+  }
+  this->channels_ = channels;
+  return *this;
+}
+
+unsigned int ImageParameters::GetChannels() const { return channels_; }
 
 unsigned int ImageParameters::GetWidth() const { return width_; }
 

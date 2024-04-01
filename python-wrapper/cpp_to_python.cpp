@@ -9,6 +9,7 @@
 namespace py = pybind11;
 
 namespace {
+// A trampoline from abstract IDataContainer to pybind11 
 class PyIDataContainer final : public IDataContainer {
 public:
   using IDataContainer::IDataContainer;
@@ -41,20 +42,24 @@ PYBIND11_MODULE(accelerated_piv_cpp, m) {
       .value("kNoCorrection", CorrectionType::kNoCorrection);
 
   py::class_<PIVParameters>(m, "PIVParameters")
-      .def(py::init<unsigned int, unsigned int, unsigned int, unsigned int,
+      .def(py::init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int,
                    FilterType, float, InterpolationType, CorrectionType, int>(),
-                   py::arg("width"), py::arg("height"), py::arg("window_size"), py::arg("overlap") = 0,
+                   py::arg("width"), py::arg("height"), py::arg("channels"), py::arg("window_size"), py::arg("overlap") = 0,
                    py::arg("filter_type")=FilterType::kNoFilter, py::arg("filter_parameter")=0.0f, 
                    py::arg("interpolation_type") = InterpolationType::kGaussian,
                    py::arg("correction_type")=CorrectionType::kNoCorrection, py::arg("correction_parameter")=0);
 
+  // Image container
   py::class_<IDataContainer, PyIDataContainer>(m, "IDataContainer")
       .def(py::init<const PIVParameters &>())
       .def("GetImages", &IDataContainer::GetImages);
 
   py::class_<ImageContainer, IDataContainer>(m, "ImageContainer")
       .def(py::init<std::deque<std::string> &, const PIVParameters &>());
+  
+  // TODO: Add VideoContainer class
 
+  // TODO: Add return data
   m.def("start_piv_2d",
         [](IDataContainer &container, PIVParameters &parameters) {
           StartPIV2D(container, parameters);

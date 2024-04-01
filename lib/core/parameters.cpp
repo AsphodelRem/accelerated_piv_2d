@@ -12,9 +12,11 @@ PIVParameters::PIVParameters(unsigned int width, unsigned int height,
   this->filter_parameters.SetFilterParameter(filter_parameter)
       .SetFilterType(filter_type);
 
-  this->interpolation_parameters.SetInterpolationType(interpolation_type);
+  this->interpolation_parameters
+      .SetInterpolationType(interpolation_type);
 
-  this->correction_parameters.SetCorrectionParameter(correction_parameter)
+  this->correction_parameters
+      .SetCorrectionParameter(correction_parameter)
       .SetCorrectionType(correction_type);
 
   this->image_parameters.SetHeight(height)
@@ -56,25 +58,25 @@ void PIVParameters::LoadFromToml(const std::string &path_to_toml) {
 void PIVParameters::SaveToToml(const std::string &path_to_toml) {
   toml::table toml_content{
       {"image_parameters",
-       toml::table{{"height", this->image_parameters.GetHeight()},
-                   {"width", this->image_parameters.GetWidth()},
-                   {"window_size", this->image_parameters.GetWindowSize()},
-                   {"overlap", this->image_parameters.GetOverlap()}}},
+      toml::table{{"height", this->image_parameters.GetHeight()},
+                  {"width", this->image_parameters.GetWidth()},
+                  {"window_size", this->image_parameters.GetWindowSize()},
+                  {"overlap", this->image_parameters.GetOverlap()}}},
 
       {"interpolation",
-       toml::table{{"type", this->interpolation_parameters.GetInterpolationType()}}},
+      toml::table{{"type", this->interpolation_parameters.GetInterpolationType()}}},
 
       {"filter", 
       toml::table{{"type", this->filter_parameters.GetFilterType()},
-                             {"parameter", this->filter_parameters.GetFilterParameter()}}},
+                  {"parameter", this->filter_parameters.GetFilterParameter()}}},
 
       {"correction",
-       toml::table{{"type", this->correction_parameters.GetCorrectionType()},
-                   {"parameter", this->correction_parameters.GetCorrectionParameter()}}}
+      toml::table{{"type", this->correction_parameters.GetCorrectionType()},
+                  {"parameter", this->correction_parameters.GetCorrectionParameter()}}}
       };
 
   std::ofstream toml_fout(path_to_toml);
-  
+
   toml_fout << toml_content << std::endl;
 }
 

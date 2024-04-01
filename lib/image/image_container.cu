@@ -18,12 +18,8 @@ ImageContainer::ImageContainer(std::deque<std::string> &file_names,
     throw std::runtime_error("No files");
   }
 
-  const std::string file_1_name = this->file_names_.front();
-  const std::string file_2_name = this->file_names_.front();
-
-  this->input_images_ = ImagePair<unsigned char>(file_1_name, file_2_name);
-  this->output_images_ = PreprocessedImagesPair<unsigned char, float>(
-      this->input_images_, parameters);
+  this->input_data_ = ImagePair<unsigned char>(parameters);
+  this->output_data_ = PreprocessedImagesPair<unsigned char, float>(parameters);
 }
 
 std::optional<std::reference_wrapper<PreprocessedImagesPair<unsigned char, float>>>
@@ -35,10 +31,10 @@ ImageContainer::GetImages() {
     const std::string file_2_name = this->file_names_.front();
     this->file_names_.pop_front();
 
-    this->input_images_.UploadNewImages(file_1_name, file_2_name);
-    this->output_images_.UploadNewImages(this->input_images_);
+    this->input_data_.UploadNewImages(file_1_name, file_2_name);
+    this->output_data_.UploadNewImages(this->input_data_);
 
-    return {this->output_images_};
+    return {this->output_data_};
   }
 
   return std::nullopt;
@@ -51,15 +47,18 @@ VideoContainer::VideoContainer(std::string path_to_video_file,
   if (!this->video_.isOpened()) {
     throw std::runtime_error("Unable to open " + path_to_video_file + " file!");
   }
+
+  this->input_data_ = ImagePair<unsigned char>(parameters);
+  this->output_data_ = PreprocessedImagesPair<unsigned char, float>(parameters);
 }
 
 std::optional<std::reference_wrapper<PreprocessedImagesPair<unsigned char, float>>>
 VideoContainer::GetImages() {
   if (video_.read(buffer_1) && video_.read(buffer_2)) {
-    input_frames_.UploadNewImages(buffer_1, buffer_2);
-    output_frames_.UploadNewImages(input_frames_);
+    input_data_.UploadNewImages(buffer_1, buffer_2);
+    output_data_.UploadNewImages(input_data_);
 
-    return { this->output_frames_ };
+    return { this->output_data_ };
   }
   
   return std::nullopt;

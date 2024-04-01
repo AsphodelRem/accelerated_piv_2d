@@ -20,6 +20,9 @@ public:
 
 protected:
   const PIVParameters &parameters_;
+
+  ImagePair<unsigned char> input_data_;
+  PreprocessedImagesPair<unsigned char, float> output_data_;
 };
 
 class ImageContainer final : public IDataContainer {
@@ -34,9 +37,6 @@ public:
   GetImages() override;
 
 private:
-  ImagePair<unsigned char> input_images_;
-  PreprocessedImagesPair<unsigned char, float> output_images_;
-
   std::deque<std::string> file_names_;
 };
 
@@ -53,7 +53,4 @@ public:
 private:
   cv::VideoCapture video_;
   cv::Mat buffer_1, buffer_2;
-
-  ImagePair<unsigned char> input_frames_;
-  PreprocessedImagesPair<unsigned char, float> output_frames_;
 };

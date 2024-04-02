@@ -49,7 +49,7 @@ PYBIND11_MODULE(accelerated_piv_cpp, m) {
                    py::arg("interpolation_type") = InterpolationType::kGaussian,
                    py::arg("correction_type")=CorrectionType::kNoCorrection, py::arg("correction_parameter")=0);
 
-  // Image container
+  // Data containers
   py::class_<IDataContainer, PyIDataContainer>(m, "IDataContainer")
       .def(py::init<const PIVParameters &>())
       .def("GetImages", &IDataContainer::GetImages);
@@ -57,7 +57,8 @@ PYBIND11_MODULE(accelerated_piv_cpp, m) {
   py::class_<ImageContainer, IDataContainer>(m, "ImageContainer")
       .def(py::init<std::deque<std::string> &, const PIVParameters &>());
   
-  // TODO: Add VideoContainer class
+  py::class_<VideoContainer, IDataContainer>(m, "VideoContainer")
+      .def(py::init<const std::string &, const PIVParameters &>());
 
   // TODO: Add return data
   m.def("start_piv_2d",

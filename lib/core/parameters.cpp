@@ -37,6 +37,8 @@ void PIVParameters::LoadFromToml(const std::string &path_to_toml) {
       config["image_parameters"]["height"].value_or(0));
   this->image_parameters.SetWidth(
       config["image_parameters"]["width"].value_or(0));
+  this->image_parameters.SetChannels(
+    config["image_parameters"]["channels"].value_or(0));
   this->image_parameters.SetWindowSize(
       config["image_parameters"]["window_size"].value_or(0));
   this->image_parameters.SetOverlap(
@@ -64,6 +66,7 @@ void PIVParameters::SaveToToml(const std::string &path_to_toml) {
       {"image_parameters",
       toml::table{{"height", this->image_parameters.GetHeight()},
                   {"width", this->image_parameters.GetWidth()},
+                  {"channels", this->image_parameters.GetChannels()},
                   {"window_size", this->image_parameters.GetWindowSize()},
                   {"overlap", this->image_parameters.GetOverlap()}}},
 

@@ -14,9 +14,10 @@ public:
 
   virtual ~IDataContainer() = default;
 
-  virtual std::optional<
-      std::reference_wrapper<PreprocessedImagesPair<unsigned char, float>>>
-  GetImages() = 0;
+  using ReturnType = std::optional<
+      std::reference_wrapper<PreprocessedImagesPair<unsigned char, float>>>;
+
+  virtual ReturnType GetImages() = 0;
 
 protected:
   const PIVParameters &parameters_;
@@ -32,23 +33,20 @@ public:
 
   ~ImageContainer() override = default;
 
-  std::optional<
-      std::reference_wrapper<PreprocessedImagesPair<unsigned char, float>>>
-  GetImages() override;
+  ReturnType GetImages() override;
 
 private:
   std::deque<std::string> file_names_;
 };
 
-class VideoContainer final : public IDataContainer
-{
+class VideoContainer final : public IDataContainer {
 public:
-    VideoContainer(std::string path_to_video_file, PIVParameters& parameters);
-    ~VideoContainer() override = default;
+  VideoContainer(const std::string &path_to_video_file,
+                 const PIVParameters &parameters);
 
-  std::optional<
-      std::reference_wrapper<PreprocessedImagesPair<unsigned char, float>>>
-  GetImages() override;
+  ~VideoContainer() override = default;
+
+  ReturnType GetImages() override;
 
 private:
   cv::VideoCapture video_;

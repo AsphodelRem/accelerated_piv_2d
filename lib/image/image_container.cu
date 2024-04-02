@@ -40,8 +40,8 @@ ImageContainer::GetImages() {
   return std::nullopt;
 }
 
-VideoContainer::VideoContainer(std::string path_to_video_file,
-                               PIVParameters &parameters)
+VideoContainer::VideoContainer(const std::string &path_to_video_file,
+                               const PIVParameters &parameters)
     : IDataContainer(parameters) {
   this->video_ = cv::VideoCapture(path_to_video_file);
   if (!this->video_.isOpened()) {

@@ -1,6 +1,5 @@
 #include <core/parameters.hpp>
 #include <extern/toml.hpp>
-#include <fstream>
 
 PIVParameters::PIVParameters(
   unsigned int width, unsigned int height, unsigned int channels,
@@ -8,7 +7,9 @@ PIVParameters::PIVParameters(
   FilterType filter_type, float filter_parameter,
   InterpolationType interpolation_type,
   CorrectionType correction_type,
-  int correction_parameter) {
+  int correction_parameter,
+  bool to_save_on_disk, 
+  unsigned int capacity) {
 
   this->filter_parameters
       .SetFilterParameter(filter_parameter)
@@ -27,6 +28,10 @@ PIVParameters::PIVParameters(
       .SetChannels(channels)
       .SetWindowSize(window_size)
       .SetOverlap(overlap);
+
+  this->memory_settings
+      .SetSaveOnDiskMode(to_save_on_disk)
+      .SetContainerCapacity(capacity);
 }
 
 void PIVParameters::LoadFromToml(const std::string &path_to_toml) {
@@ -59,6 +64,12 @@ void PIVParameters::LoadFromToml(const std::string &path_to_toml) {
       config["correction"]["type"].value_or(CorrectionType::kNoCorrection));
   this->correction_parameters.SetCorrectionParameter(
       config["correction"]["parameter"].value_or(0));
+
+  // Memory management settings
+  this->memory_settings.SetSaveOnDiskMode(
+      config["memory_management"]["save_on_disk"].value_or(false));
+  this->memory_settings.SetContainerCapacity(
+      config["memory_management"]["capacity"].value_or(1200));
 }
 
 void PIVParameters::SaveToToml(const std::string &path_to_toml) {
@@ -79,7 +90,11 @@ void PIVParameters::SaveToToml(const std::string &path_to_toml) {
 
       {"correction",
       toml::table{{"type", this->correction_parameters.GetCorrectionType()},
-                  {"parameter", this->correction_parameters.GetCorrectionParameter()}}}
+                  {"parameter", this->correction_parameters.GetCorrectionParameter()}}},
+
+  {"memory_management",
+      toml::table{{"save_on_disk", this->memory_settings.GetSaveOnDiskMode()},
+                  {"capacity", this->memory_settings.GetContainerCapacity()}}}
       };
 
   std::ofstream toml_fout(path_to_toml);
@@ -215,4 +230,27 @@ VectorCorrectionsParameters &
 VectorCorrectionsParameters::SetCorrectionParameter(int value) {
   correction_parameter_ = value;
   return *this;
+}
+
+MemorySettings::MemorySettings() {
+  container_capacity_ = 1200;
+  to_save_on_disk_ = false;
+};
+
+MemorySettings& MemorySettings::SetSaveOnDiskMode(bool mode) {
+  to_save_on_disk_ = mode;
+  return *this;
+}
+
+MemorySettings& MemorySettings::SetContainerCapacity(unsigned int number) {
+  container_capacity_ = number;
+  return *this;
+}
+
+bool MemorySettings::GetSaveOnDiskMode() const {
+  return to_save_on_disk_;
+}
+
+unsigned int MemorySettings::GetContainerCapacity() const {
+  return container_capacity_;
 }

@@ -83,6 +83,21 @@ private:
   int correction_parameter_;
 };
 
+class MemorySettings {
+public:
+  MemorySettings();
+
+  MemorySettings &SetSaveOnDiskMode(bool mode);
+  MemorySettings &SetContainerCapacity(unsigned int number);
+
+  bool GetSaveOnDiskMode() const;
+  unsigned int GetContainerCapacity() const;
+
+private:
+  bool to_save_on_disk_;
+  unsigned int container_capacity_;
+};
+
 class PIVParameters {
 public:
   PIVParameters() = default;
@@ -95,7 +110,9 @@ public:
       float filter_parameter = 0.0f,
       InterpolationType interpolation_type = InterpolationType::kGaussian,
       CorrectionType correction_type = CorrectionType::kNoCorrection,
-      int correction_parameter = 0);
+      int correction_parameter = 0,
+      bool to_save_on_disk = false, 
+      unsigned int capacity = 1200);
 
   PIVParameters(std::string &path_to_toml_config);
 
@@ -112,4 +129,5 @@ public:
   FilterParameters filter_parameters;
   VectorCorrectionsParameters correction_parameters;
   InterpolationParameters interpolation_parameters;
+  MemorySettings memory_settings;
 };

@@ -42,12 +42,18 @@ PYBIND11_MODULE(accelerated_piv_cpp, m) {
       .value("kNoCorrection", CorrectionType::kNoCorrection);
 
   py::class_<PIVParameters>(m, "PIVParameters")
-      .def(py::init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int,
-                   FilterType, float, InterpolationType, CorrectionType, int>(),
-                   py::arg("width"), py::arg("height"), py::arg("channels"), py::arg("window_size"), py::arg("overlap") = 0,
-                   py::arg("filter_type")=FilterType::kNoFilter, py::arg("filter_parameter")=0.0f, 
-                   py::arg("interpolation_type") = InterpolationType::kGaussian,
-                   py::arg("correction_type")=CorrectionType::kNoCorrection, py::arg("correction_parameter")=0);
+      .def(py::init<unsigned int, unsigned int, unsigned int, unsigned int,
+                    unsigned int, FilterType, float, InterpolationType,
+                    CorrectionType, int, bool, unsigned int>(),
+           py::arg("width"), py::arg("height"), py::arg("channels"),
+           py::arg("window_size"), py::arg("overlap") = 0,
+           py::arg("filter_type") = FilterType::kNoFilter,
+           py::arg("filter_parameter") = 0.0f,
+           py::arg("interpolation_type") = InterpolationType::kGaussian,
+           py::arg("correction_type") = CorrectionType::kNoCorrection,
+           py::arg("correction_parameter") = 0, 
+           py::arg("save_on_disk") = false,
+           py::arg("capacity") = 1200);
 
   // Data containers
   py::class_<IDataContainer, PyIDataContainer>(m, "IDataContainer")

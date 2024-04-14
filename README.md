@@ -3,6 +3,8 @@
 This package provides accelerated Particle Image Velocimetry (PIV) functionality implemented in C++ and CUDA with Python bindings. 
 PIV is a widely used technique for measuring velocity fields in fluid flows by tracking the motion of particles suspended in the flow.
 
+The project is currently in progress and may be unstable :(
+
 ## Installation
 
 You can install the package using pip:
@@ -35,7 +37,10 @@ accelerated_piv_cpp.start_piv_2d(image_container, piv_params)
 | # | Task                                                                                        | Done |
 |---|---------------------------------------------------------------------------------------------|------|
 | 1 | Replace OpenCV with another library for image and video processing                          | ✗    |
-| 2 | Implement iterative algorithms for filtering erroneous vectors                               | ✗    |
+| 2 | Implement iterative algorithms for filtering erroneous vectors                              | ✗    |
+| 3 | Add export of results to .csv                                                               | ✗    |
+| 4 | Add benchmarks                                                                              | ✗    |
+| 5 | Add a wrapper for the results storage class                                                 | ✗    |
 
 
 ## API Reference

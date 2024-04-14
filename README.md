@@ -5,12 +5,24 @@ PIV is a widely used technique for measuring velocity fields in fluid flows by t
 
 The project is currently in progress and may be unstable :(
 
+## Dependencies
+
+This project relies on the following dependencies:
+
+- **NVIDIA Cuda Toolkit**
+- **OpenCV**
+- **C++20**
+- **Python**
+- **Linux (temporary)**
+
 ## Installation
 
-You can install the package using pip:
+You can compile install the package using pip:
 
 ```bash
-pip install accelerated-piv-cpp
+git clone https://github.com/AsphodelRem/accelerated_piv_2d.git
+cd accelerated_piv_2d
+pip install .
 ```
 
 ## Usage

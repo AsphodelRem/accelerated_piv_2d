@@ -1,5 +1,3 @@
-#pragma once
-
 #include <image/preprocessing.cuh>
 
 static __global__ void

@@ -1,6 +1,6 @@
 # Accelerated PIV (Particle Image Velocimetry) in C++ with Python Bindings
 
-This package provides accelerated Particle Image Velocimetry (PIV) functionality implemented in C++ and CUDA with Python bindings. 
+This package provides accelerated Particle Image Velocimetry (PIV) functionality implemented in C++ and CUDA with Python bindings.  
 PIV is a widely used technique for measuring velocity fields in fluid flows by tracking the motion of particles suspended in the flow.
 
 The project is currently in progress and may be unstable :(
@@ -12,16 +12,17 @@ This project relies on the following dependencies:
 - **NVIDIA Cuda Toolkit**
 - **OpenCV**
 - **C++20**
-- **Python**
+- **Python3-dev package**
 - **Linux (temporary)**
 
 ## Installation
 
-You can compile install the package using pip:
+You can compile and install the package using CMake and pip:
 
 ```bash
 git clone https://github.com/AsphodelRem/accelerated_piv_2d.git
 cd accelerated_piv_2d
+cmake build
 pip install .
 ```
 
@@ -53,7 +54,6 @@ accelerated_piv_cpp.start_piv_2d(image_container, piv_params)
 | 3 | Add export of results to .csv                                                               | ✗    |
 | 4 | Add benchmarks                                                                              | ✗    |
 | 5 | Add a wrapper for the results storage class                                                 | ✗    |
-
 
 ## API Reference
 
@@ -89,8 +89,8 @@ PIVParameters(width: int, height: int, channels: int, window_size: int, overlap:
 
 ### `ImageContainer`
 
-The ImageContainer serves as a data container for processing images. 
-It is utilized for loading and pre-processing a set of images intended for PIV analysis. 
+The ImageContainer serves as a data container for processing images.
+It is utilized for loading and pre-processing a set of images intended for PIV analysis.
 
 #### Constructor
 
@@ -101,7 +101,7 @@ ImageContainer(image_paths: List[str], piv_parameters: PIVParameters)
 ### `VideoContainer`
 
 The VideoContainer acts as a data container for processing video files.
-It is employed for loading and pre-processing video footage intended for PIV analysis. 
+It is employed for loading and pre-processing video footage intended for PIV analysis.
 
 #### Constructor
 

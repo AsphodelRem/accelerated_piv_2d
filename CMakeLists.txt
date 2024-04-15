@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(piv CUDA CXX)
+project(piv LANGUAGES C CXX CUDA)
 
 set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CXX_STANDARD 20)
@@ -18,6 +18,7 @@ set(LIBS cufft nppc nppicc nppist X11)
 
 file(GLOB CORE_SOURCE_FILES
         "lib/core/*.cu"
+        "lib/core/*.cpp"
         "lib/image/*.cu"
         "lib/image/*.cuh"
         "lib/utils/*.cuh"
@@ -30,15 +31,14 @@ message("Source files: ${CORE_SOURCE_FILES}")
 add_library(piv STATIC ${CORE_SOURCE_FILES})
 set_target_properties(piv PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
-target_link_libraries(piv ${LIBS} ${OpenCV_LIBS} ${X11_LIBRARIES})
+target_link_libraries(piv ${LIBS} ${OpenCV_LIBS})
 
-cuda_add_executable(piv_test_lib lib/main.cu)
-target_link_libraries(piv_test_lib piv)
+# add_executable(piv_test_lib lib/main.cu)
+# target_link_libraries(piv_test_lib piv)
 
 include_directories(lib python-wrapper extern)
 add_subdirectory(extern/pybind11)
 
-message("Creating wrapper")
 pybind11_add_module(accelerated_piv_cpp python-wrapper/cpp_to_python.cpp ${CORE_SOURCE_FILES})
 target_link_libraries(accelerated_piv_cpp PUBLIC ${LIBS} ${OpenCV_LIBS})
 target_compile_definitions(accelerated_piv_cpp

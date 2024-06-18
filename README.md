@@ -20,7 +20,7 @@ This project relies on the following dependencies:
 You can compile and install the package using CMake and pip:
 
 ```bash
-git clone https://github.com/AsphodelRem/accelerated_piv_2d.git
+git clone --recurse-submodules https://github.com/AsphodelRem/accelerated_piv_2d.git
 cd accelerated_piv_2d
 cmake build
 pip install .

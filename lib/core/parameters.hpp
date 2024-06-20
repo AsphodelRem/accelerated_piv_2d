@@ -27,9 +27,9 @@ public:
   ImageParameters() = default;
 
   ImageParameters &SetWidth(unsigned int width);
-  ImageParameters &SetHeight(unsigned int width);
-  ImageParameters &SetWindowSize(unsigned int width);
-  ImageParameters &SetOverlap(unsigned int width);
+  ImageParameters &SetHeight(unsigned int heigth);
+  ImageParameters &SetWindowSize(unsigned int window_size);
+  ImageParameters &SetOverlap(unsigned int overlap);
   ImageParameters &SetChannels(unsigned int channels);
 
   unsigned int GetWidth() const;
@@ -100,7 +100,7 @@ private:
 
 class PIVParameters {
 public:
-  PIVParameters() = default;
+  PIVParameters();
 
   PIVParameters(
       unsigned int width, unsigned int height,
@@ -114,7 +114,9 @@ public:
       bool to_save_on_disk = false, 
       unsigned int capacity = 1200);
 
-  PIVParameters(std::string &path_to_toml_config);
+  PIVParameters(const std::string &path_to_toml_config);
+
+  PIVParameters(const PIVParameters& other);
 
   void LoadFromToml(const std::string &path_to_toml);
   void SaveToToml(const std::string &path_to_toml);

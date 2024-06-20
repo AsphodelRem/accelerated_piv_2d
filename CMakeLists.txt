@@ -14,7 +14,7 @@ include_directories(image core utils)
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-set(LIBS cufft nppc nppicc nppist X11)
+set(LIBS cufft nppc nppicc nppist)
 
 file(GLOB CORE_SOURCE_FILES
         "lib/core/*.cu"
@@ -33,8 +33,8 @@ set_target_properties(piv PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
 target_link_libraries(piv ${LIBS} ${OpenCV_LIBS})
 
-# add_executable(piv_test_lib lib/main.cu)
-# target_link_libraries(piv_test_lib piv)
+add_executable(piv_test_lib lib/main.cu)
+target_link_libraries(piv_test_lib piv)
 
 include_directories(lib python-wrapper extern)
 add_subdirectory(extern/pybind11)

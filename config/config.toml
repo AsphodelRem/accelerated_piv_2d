@@ -1,0 +1,21 @@
+[correction]
+parameter = 0
+type = 2
+
+[filter]
+parameter = 0.0
+type = 3
+
+[image_parameters]
+channels = 3
+height = 1000
+overlap = 0
+width = 500
+window_size = 16
+
+[interpolation]
+type = 0
+
+[memory_management]
+capacity = 1200
+save_on_disk = false

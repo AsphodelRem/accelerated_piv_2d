@@ -1,6 +1,34 @@
 #include <core/parameters.hpp>
 #include <extern/toml.hpp>
 
+PIVParameters::PIVParameters() {
+  this->image_parameters
+    .SetHeight(1)
+    .SetWidth(1)
+    .SetChannels(1)
+    .SetWindowSize(1)
+    .SetOverlap(0);
+
+  this->interpolation_parameters
+    .SetInterpolationType(InterpolationType::kGaussian);
+
+  this->filter_parameters
+    .SetFilterType(FilterType::kNoFilter)
+    .SetFilterParameter(0.0f);
+
+  this->correction_parameters
+    .SetCorrectionType(CorrectionType::kNoCorrection)
+    .SetCorrectionParameter(0);
+
+  this->memory_settings
+    .SetSaveOnDiskMode(false)
+    .SetContainerCapacity(1200);
+}
+
+PIVParameters::PIVParameters(const std::string &path_to_toml_config) {
+  this->LoadFromToml(path_to_toml_config);
+}
+
 PIVParameters::PIVParameters(
   unsigned int width, unsigned int height, unsigned int channels,
   unsigned int window_size, unsigned int overlap,
@@ -32,6 +60,14 @@ PIVParameters::PIVParameters(
   this->memory_settings
       .SetSaveOnDiskMode(to_save_on_disk)
       .SetContainerCapacity(capacity);
+}
+
+PIVParameters::PIVParameters(const PIVParameters& other) {
+  this->image_parameters = other.image_parameters;
+  this->interpolation_parameters = other.interpolation_parameters;
+  this->filter_parameters = other.filter_parameters;
+  this->correction_parameters = other.correction_parameters;
+  this->memory_settings = other.memory_settings;
 }
 
 void PIVParameters::LoadFromToml(const std::string &path_to_toml) {
